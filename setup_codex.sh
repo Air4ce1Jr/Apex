@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# 1) Install Salesforce CLI
 npm install -g sfdx-cli
 
-# 2) (Optional) Add CLI plugins you need
-sfdx plugins:install @salesforce/sfdx-lwc-jest
+# Non-interactive auth: reads from SFDX_AUTH_URL
+echo "$SFDX_AUTH_URL" | sfdx auth:sfdxurl:store --setalias QuickBooksSandbox
 
-# 3) (Optional) Verify install
-sfdx --version
+# Set the default username so you don’t need --targetusername flags everywhere
+sfdx force:config:set defaultusername=$SFDX_DEFAULTUSERNAME
+
+# Verify you’re connected
+sfdx force:org:display --targetusername $SFDX_DEFAULTUSERNAME --json
