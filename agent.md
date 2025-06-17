@@ -14,3 +14,8 @@
 1. **Run Apex tests** (must achieve **≥ 90%** code coverage):
    ```bash
    sfdx force:apex:test:run --codecoverage --resultformat human
+
+sfdx force:source:deploy \
+  --checkonly \
+  -p force-app/main/default \
+  --testlevel RunLocalTests
