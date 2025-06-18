@@ -14,7 +14,7 @@ sfdx force:auth:sfdxurl:store -f sfdxAuthUrl.txt --setalias QuickBooksSandbox
 rm sfdxAuthUrl.txt
 
 echo ">>> Setting default username"
-sfdx force:config:set defaultusername=$SFDX_DEFAULTUSERNAME
+sfdx force:config:set defaultusername=$SFDX_DEFAULTUSERNAME --global
 
 echo ">>> Displaying org info"
 sfdx force:org:display --targetusername $SFDX_DEFAULTUSERNAME --json
