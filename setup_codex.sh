@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-set -euo pipefail   # exit on any error, undefined var, or failed pipe
-set -x  
-npm install -g sfdx-cli
++set -euo pipefail   # exit on any error, undefined var, or failed pipe
++set -x               # echo each command before running it
 
-# install dos2unix if you don’t have it (macOS: brew install dos2unix)
-dos2unix setup_codex.sh
++# Normalize this script’s line endings (strip any stray CRs)
++sed -i 's/\r$//' "$0" 
 
 echo ">>> Installing Salesforce CLI"
 npm install -g sfdx-cli
