@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-set -euo pipefail   # exit on any error, undefined var, or failed pipe
-set -x               # echo each command before running it
+set -euo pipefail
+set -x
 
-# Normalize this script’s line endings (strip any stray CRs)
+# Normalize line endings
 sed -i 's/\r$//' "$0"
 
 echo ">>> Installing Salesforce CLI"
 npm install -g sfdx-cli
 
-# Non-interactive auth via the OAuth URL
-echo "$SFDX_AUTH_URL" | sfdx force:auth:sfdxurl:store --setalias QuickBooksSandbox
+echo ">>> Authenticating via SFDX_AUTH_URL"
+echo "$SFDX_AUTH_URL" > sfdxAuthUrl.txt
+sfdx force:auth:sfdxurl:store -f sfdxAuthUrl.txt --setalias QuickBooksSandbox
+rm sfdxAuthUrl.txt
 
 echo ">>> Setting default username"
 sfdx force:config:set defaultusername=$SFDX_DEFAULTUSERNAME
