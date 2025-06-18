@@ -8,8 +8,8 @@ sed -i 's/\r$//' "$0"
 echo ">>> Installing Salesforce CLI"
 npm install -g sfdx-cli
 
-echo ">>> Authenticating via SFDX_AUTH_URL"
-echo "$SFDX_AUTH_URL" | sfdx auth:sfdxurl:store --setalias QuickBooksSandbox
+# Non-interactive auth via the OAuth URL
+echo "$SFDX_AUTH_URL" | sfdx force:auth:sfdxurl:store --setalias QuickBooksSandbox
 
 echo ">>> Setting default username"
 sfdx force:config:set defaultusername=$SFDX_DEFAULTUSERNAME
