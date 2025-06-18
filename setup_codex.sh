@@ -11,9 +11,7 @@ npm install -g sfdx-cli
 echo ">>> Authenticating via SFDX_AUTH_URL"
 echo "$SFDX_AUTH_URL" > sfdxAuthUrl.txt
 # note: -f maps to --sfdx-url-file, -a maps to --alias
-sfdx force:auth:sfdxurl:store \
-  --sfdx-url-file sfdxAuthUrl.txt \
-  --alias QuickBooksSandbox
+sfdx force:auth:sfdxurl:store --sfdxurlfile sfdxAuthUrl.txt --setalias QuickBooksSandbox
 rm sfdxAuthUrl.txt
 
 echo ">>> Setting default username"
