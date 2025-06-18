@@ -30,25 +30,42 @@ The following reference files are located at the root of the repo (`https://gith
 
 ## 3. Validation & Testing
 
-1. **Run Apex tests** (must achieve **≥ 90%** code coverage):
+1. **Run Apex tests** (must achieve **≥ 95%** code coverage on any new or modified classes):
 
    ```bash
    sfdx force:apex:test:run --codecoverage --resultformat human
    ```
-2. **Validate-only deploy** (runs tests & checks without deployment):
+
+2. **Validate-only deploy to sandbox** (runs tests & checks without actual deployment):
 
    ```bash
    sfdx force:source:deploy --checkonly -p force-app/main/default --testlevel RunLocalTests
    ```
 
-## 4. Pull Requests
+   * If certain legacy controllers fall below coverage, write additional unit tests to bring overall org coverage above **75%**.
 
-* **Title format**: `[QuickBooks→Salesforce] <concise summary>`
-* **Body should include**:
+3. **Full sandbox deployment**:
+
+   1. Push changes to your sandbox.
+   2. Run all local tests to confirm **org-wide coverage ≥ 75%**.
+   3. Ensure no coverage errors remain.
+
+## 4. Pull Requests & Change Sets
+
+* **Pull request title**: `[QuickBooks→Salesforce] <concise summary>`
+
+* **PR body** should include:
 
   1. Summary of changes
-  2. Verified test coverage (%)
-  3. Validation-only deploy summary
+  2. Verified test coverage (%) for new/modified classes
+  3. Validation-only deploy summary (test run and coverage)
+
+* **Sandbox Change Set**:
+
+  1. Create outbound Change Set in sandbox containing your metadata.
+  2. Include all Apex classes, triggers, and test classes.
+  3. Deploy to target org with “Run Local Tests” / “Run All Tests” enabled.
+  4. Verify deployment status and org-wide coverage.
 
 ## 5. QuickBooks Connectivity
 
