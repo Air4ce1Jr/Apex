@@ -10,7 +10,7 @@ private class QuickBooksSyncJobTest {
     }
 
     @IsTest static void testQueueable() {
-        Test.setMock(HttpCalloutMock.class, new Mock());
+        System.Test.setMock(HttpCalloutMock.class, new Mock());
         rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=0);
         insert load;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(
@@ -22,9 +22,9 @@ private class QuickBooksSyncJobTest {
         );
         insert inv;
         List<Id> ids = new List<Id>{inv.Id};
-        Test.startTest();
+        System.Test.startTest();
         System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerInvoice__c', ids));
-        Test.stopTest();
+        System.Test.stopTest();
         System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
     }
 }

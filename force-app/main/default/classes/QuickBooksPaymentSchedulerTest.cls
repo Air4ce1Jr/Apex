@@ -9,11 +9,11 @@ private class QuickBooksPaymentSchedulerTest {
     }
 
     @IsTest static void testScheduler() {
-        Test.setMock(HttpCalloutMock.class, new Mock());
+        System.Test.setMock(HttpCalloutMock.class, new Mock());
         String cron = '0 0 0 * * ?';
-        Test.startTest();
+        System.Test.startTest();
         String jobId = System.schedule('QBPay', cron, new QuickBooksPaymentScheduler());
-        Test.stopTest();
+        System.Test.stopTest();
         System.assertNotEquals(null, jobId);
     }
 }

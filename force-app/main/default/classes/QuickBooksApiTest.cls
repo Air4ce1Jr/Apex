@@ -19,16 +19,16 @@ private class QuickBooksApiTest {
 
     @IsTest static void testSendSuccessWithRetry() {
         Mock m = new Mock(200);
-        Test.setMock(HttpCalloutMock.class, m);
-        Test.startTest();
+        System.Test.setMock(HttpCalloutMock.class, m);
+        System.Test.startTest();
         HttpResponse res = QuickBooksApi.send('GET', '/v3/company/1/customer', null);
-        Test.stopTest();
+        System.Test.stopTest();
         System.assertEquals(200, res.getStatusCode());
     }
 
     @IsTest static void testSendError() {
         Mock m = new Mock(400);
-        Test.setMock(HttpCalloutMock.class, m);
+        System.Test.setMock(HttpCalloutMock.class, m);
         Boolean thrown = false;
         try {
             QuickBooksApi.send('GET', '/v3/company/1/customer', null);
