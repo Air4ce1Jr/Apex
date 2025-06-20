@@ -1,5 +1,6 @@
 @IsTest(SeeAllData=true)
 private class CustomerInvoiceTriggerTest {
+    // Verifies CustomerInvoiceTrigger enqueues syncs when Accounting_Status__c is set
     class Mock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
             HttpResponse res = new HttpResponse();
