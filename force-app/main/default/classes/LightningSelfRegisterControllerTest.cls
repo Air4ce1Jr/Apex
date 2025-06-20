@@ -1,5 +1,12 @@
 @IsTest(SeeAllData = true)
 public with sharing class LightningSelfRegisterControllerTest {
+ class Mock implements HttpCalloutMock {
+  public HTTPResponse respond(HTTPRequest req) {
+   HttpResponse res = new HttpResponse();
+   res.setStatusCode(200);
+   return res;
+  }
+ }
 
  /* Verifies that IsValidPassword method with various password combinations. */
  @IsTest
@@ -43,8 +50,11 @@ public with sharing class LightningSelfRegisterControllerTest {
   List < Account > accounts = [SELECT Id FROM Account LIMIT 1];
   System.assert(!accounts.isEmpty(), 'There must be at least one account in this environment!');
   String accountId = accounts[0].Id;
-  Map < String, String > paramsMap = initializeParams();
+ Map < String, String > paramsMap = initializeParams();
+  System.Test.setMock(HttpCalloutMock.class, new Mock());
+  System.Test.startTest();
   System.assertEquals(null, LightningSelfRegisterController.selfRegister(paramsMap.get('firstName'), paramsMap.get('lastName'), paramsMap.get('email'), paramsMap.get('password'), paramsMap.get('confirmPasswordCorrect'), accountId, paramsMap.get('regConfirmUrl'), null, paramsMap.get('startUrl'), false));
+  System.Test.stopTest();
  }
 
  @IsTest

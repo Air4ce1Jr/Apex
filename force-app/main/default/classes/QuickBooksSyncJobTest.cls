@@ -1,4 +1,4 @@
-@IsTest
+@IsTest(SeeAllData=true)
 private class QuickBooksSyncJobTest {
     class Mock implements HttpCalloutMock {
         public HTTPResponse respond(HTTPRequest req) {
@@ -10,8 +10,8 @@ private class QuickBooksSyncJobTest {
     }
 
     @IsTest static void testQueueable() {
-        Test.setMock(HttpCalloutMock.class, new Mock());
-        rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=0);
+        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(
             Name='Inv',
@@ -22,9 +22,19 @@ private class QuickBooksSyncJobTest {
         );
         insert inv;
         List<Id> ids = new List<Id>{inv.Id};
-        Test.startTest();
+        System.Test.startTest();
         System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerInvoice__c', ids));
-        Test.stopTest();
+        System.Test.stopTest();
+        System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
+    }
+
+    @IsTest static void testAccountQueueable() {
+        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Account a = new Account(Name='Acct');
+        insert a;
+        System.Test.startTest();
+        System.enqueueJob(new QuickBooksSyncJob('Account', new List<Id>{a.Id}));
+        System.Test.stopTest();
         System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
     }
 }

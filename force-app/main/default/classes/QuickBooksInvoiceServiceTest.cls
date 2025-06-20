@@ -1,4 +1,4 @@
-@IsTest
+@IsTest(SeeAllData=true)
 private class QuickBooksInvoiceServiceTest {
     class QBMock implements HttpCalloutMock {
         public HTTPResponse respond(HTTPRequest req) {
@@ -12,8 +12,8 @@ private class QuickBooksInvoiceServiceTest {
     }
 
     @IsTest static void testSendInvoice() {
-        Test.setMock(HttpCalloutMock.class, new QBMock());
-        rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=0);
+        System.Test.setMock(HttpCalloutMock.class, new QBMock());
+        rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(
             Name='Inv',
@@ -23,9 +23,9 @@ private class QuickBooksInvoiceServiceTest {
             rtms__Invoice_Total__c=15
         );
         insert inv;
-        Test.startTest();
+        System.Test.startTest();
         QuickBooksInvoiceService.sendInvoice(inv.Id);
-        Test.stopTest();
+        System.Test.stopTest();
     }
 }
 
