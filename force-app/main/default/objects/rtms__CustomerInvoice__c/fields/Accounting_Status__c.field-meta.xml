@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Accounting_Status__c</fullName>
+    <label>Accounting Status</label>
+    <type>Picklist</type>
+    <valueSet>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value><fullName>Draft</fullName><default>false</default></value>
+            <value><fullName>Ready for Accounting</fullName><default>false</default></value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
