@@ -38,6 +38,7 @@ private class CustomerInvoiceTriggerTest {
             rtms__Invoice_Date__c=Date.today(),
             rtms__Invoice_Due_Date__c=Date.today().addDays(1),
             rtms__Invoice_Total__c=20,
+ 6i2ox7-codex/build-quickbooks-integration-with-salesforce-apex
             Accounting_Status__c='Ready for Accounting'
         );
         insert inv;
