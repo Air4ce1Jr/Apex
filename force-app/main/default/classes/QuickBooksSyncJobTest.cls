@@ -13,8 +13,11 @@ private class QuickBooksSyncJobTest {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
         rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
+        Account a = new Account(Name='Acct', QuickBooks_Customer_Id__c='QB1');
+        insert a;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(
             Name='Inv',
+            Account__c=a.Id,
             rtms__Load__c=load.Id,
             rtms__Invoice_Date__c=Date.today(),
             rtms__Invoice_Due_Date__c=Date.today().addDays(1),
