@@ -1,7 +1,9 @@
 @IsTest(SeeAllData=true)
 private class QuickBooksServiceTest {
     class Mock implements HttpCalloutMock {
+        public String lastMethod;
         public HTTPResponse respond(HTTPRequest req) {
+            lastMethod = req.getMethod();
             HttpResponse res = new HttpResponse();
             res.setStatusCode(200);
             res.setBody('{}');
@@ -10,16 +12,23 @@ private class QuickBooksServiceTest {
     }
 
     @IsTest static void testCreateCustomer() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Mock m = new Mock();
+        System.Test.setMock(HttpCalloutMock.class, m);
         Account acct = new Account(Name='a', DBA_Name__c='DBA', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606', QuickBooks_Email__c='a@example.com');
         insert acct;
         System.Test.startTest();
         QuickBooksService.createOrUpdateCustomer(acct);
+        System.assertEquals('POST', m.lastMethod);
+        acct.QuickBooks_Customer_Id__c = '1';
+        acct.QuickBooks_Customer_SyncToken__c = '0';
+        QuickBooksService.createOrUpdateCustomer(acct);
+        System.assertEquals('PATCH', m.lastMethod);
         System.Test.stopTest();
     }
 
     @IsTest static void testCreateInvoiceLineAndPayment() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Mock m = new Mock();
+        System.Test.setMock(HttpCalloutMock.class, m);
         rtms__Load__c load = new rtms__Load__c(Name='L', rtms__Total_Weight__c=1);
         insert load;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv', rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1);
@@ -38,8 +47,14 @@ private class QuickBooksServiceTest {
         insert pay;
         System.Test.startTest();
         QuickBooksService.createOrUpdateInvoice(inv);
+        System.assertEquals('POST', m.lastMethod);
+        inv.QuickBooks_Invoice_Id__c = '2';
+        inv.QuickBooks_Invoice_SyncToken__c = '0';
+        QuickBooksService.createOrUpdateInvoice(inv);
+        System.assertEquals('PATCH', m.lastMethod);
         QuickBooksService.createInvoiceLines(new List<rtms__CustomerInvoiceAccessorial__c>{line}, '1');
         QuickBooksService.createPayment(pay);
         System.Test.stopTest();
     }
+
 }
