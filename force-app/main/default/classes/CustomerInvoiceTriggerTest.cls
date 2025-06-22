@@ -1,6 +1,6 @@
 @IsTest(SeeAllData=true)
 private class CustomerInvoiceTriggerTest {
-    // Verifies CustomerInvoiceTrigger enqueues syncs when Accounting_Status__c is set
+    // Verifies CustomerInvoiceTrigger enqueues syncs when rtms__Accounting_Status__c is set
     class Mock implements HttpCalloutMock {
         public HttpResponse respond(HttpRequest req) {
             HttpResponse res = new HttpResponse();
@@ -20,7 +20,7 @@ private class CustomerInvoiceTriggerTest {
             rtms__Invoice_Date__c=Date.today(),
             rtms__Invoice_Due_Date__c=Date.today().addDays(1),
             rtms__Invoice_Total__c=10,
-            Accounting_Status__c='Ready for Accounting'
+            rtms__Accounting_Status__c='Ready for Accounting'
         );
         System.Test.startTest();
         insert inv;
@@ -38,8 +38,8 @@ private class CustomerInvoiceTriggerTest {
             rtms__Invoice_Date__c=Date.today(),
             rtms__Invoice_Due_Date__c=Date.today().addDays(1),
             rtms__Invoice_Total__c=20,
- 6i2ox7-codex/build-quickbooks-integration-with-salesforce-apex
-            Accounting_Status__c='Ready for Accounting'
+            rtms__Accounting_Status__c='Draft'
+        inv.rtms__Accounting_Status__c = 'Ready for Accounting';
         );
         insert inv;
         inv.Accounting_Status__c = 'Ready for Accounting';
