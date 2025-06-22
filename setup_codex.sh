@@ -2,39 +2,31 @@
 set -euo pipefail
 set -x
 
-# Normalize line endings
+# normalize line endings in this script
 sed -i 's/\r$//' "$0"
 
 echo ">>> Installing Salesforce CLI"
 npm install -g sfdx-cli
 
 # ——— SANDBOX AUTH ———
-if [ -z "${SFDX_AUTH_URL:-}" ]; then
-  echo "ERROR: \$SFDX_AUTH_URL is not set" >&2
-  exit 1
-fi
+SANDBOX_URL="force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3FdO_2hIk0UdadC4q21_e1cjppG8LnpQ5CTFjBcVrvp@continental-tds--quickbooks.sandbox.my.salesforce.com"
 echo ">>> Authenticating sandbox org (alias: QuickBooksSandbox)"
-echo "$SFDX_AUTH_URL" > sandboxAuthUrl.txt
+echo "$SANDBOX_URL" > sandboxAuthUrl.txt
 sfdx force:auth:sfdxurl:store --sfdxurlfile sandboxAuthUrl.txt --setalias QuickBooksSandbox
 rm sandboxAuthUrl.txt
 
 # ——— PRODUCTION AUTH ———
-if [ -z "${SFDX_PROD_AUTH_URL:-}" ]; then
-  echo "ERROR: \$SFDX_PROD_AUTH_URL is not set" >&2
-  exit 1
-fi
+PROD_URL="force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5lVdH_iY72liCdetimLZp65Rw2sbBUnRRCs_QfcTgPwSZzVfw7@continental-tds.my.salesforce.com"
 echo ">>> Authenticating production org (alias: ProductionOrg)"
-echo "$SFDX_PROD_AUTH_URL" > prodAuthUrl.txt
+echo "$PROD_URL" > prodAuthUrl.txt
 sfdx force:auth:sfdxurl:store --sfdxurlfile prodAuthUrl.txt --setalias ProductionOrg
 rm prodAuthUrl.txt
 
-# ——— CONFIGURE DEFAULT USER ———
-if [ -z "${SFDX_DEFAULTUSERNAME:-}" ]; then
-  echo "ERROR: \$SFDX_DEFAULTUSERNAME is not set" >&2
-  exit 1
-fi
-echo ">>> Setting default username to sandbox ($SFDX_DEFAULTUSERNAME)"
-sfdx force:config:set defaultusername="$SFDX_DEFAULTUSERNAME" --global
+# ——— SET DEFAULT USER ———
+# (Still pick the alias you prefer; here we default to the sandbox.)
+DEFAULT_USERNAME="QuickBooksSandbox"
+echo ">>> Setting default username to sandbox ($DEFAULT_USERNAME)"
+sfdx force:config:set defaultusername="$DEFAULT_USERNAME" --global
 
 echo ">>> Displaying connected orgs"
 sfdx force:org:list --all
