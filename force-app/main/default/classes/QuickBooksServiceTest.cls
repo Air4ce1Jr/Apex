@@ -22,7 +22,10 @@ private class QuickBooksServiceTest {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
         rtms__Load__c load = new rtms__Load__c(Name='L', rtms__Total_Weight__c=1);
         insert load;
-        rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv', rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1);
+        Account acct = new Account(Name='A', QuickBooks_Customer_Id__c='QB1');
+        insert acct;
+        rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv', Account__c=acct.Id,
+            rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1);
         insert inv;
         SObject acc = Schema.getGlobalDescribe().get('rtms__Accessorial__c').newSObject();
         acc.put('Name', 'A');
@@ -32,14 +35,16 @@ private class QuickBooksServiceTest {
         rtms__CustomerInvoiceAccessorial__c line = new rtms__CustomerInvoiceAccessorial__c(Name='line', rtms__Charge__c=1, QBO_Item_Id__c='1', rtms__Unit_Price__c=1, rtms__Quantity__c=1);
         line.put('rtms__Customer_Invoice__c', inv.Id);
         line.put('rtms__Accessorial__c', accId);
-        rtms__CustomerPayment__c pay = new rtms__CustomerPayment__c(rtms__Payment_Amount__c=1, rtms__Check_Reference_Number__c='1');
+        rtms__CustomerPayment__c pay = new rtms__CustomerPayment__c(rtms__Payment_Amount__c=1,
+            rtms__Check_Reference_Number__c='1');
         pay.put('rtms__Customer_Invoice__c', inv.Id);
         pay.put('rtms__Load__c', load.Id);
+        pay.put('Account__c', acct.Id);
         insert pay;
         System.Test.startTest();
-        QuickBooksService.createOrUpdateInvoice(inv);
+        QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
         QuickBooksService.createInvoiceLines(new List<rtms__CustomerInvoiceAccessorial__c>{line}, '1');
-        QuickBooksService.createPayment(pay);
+        QuickBooksService.createPayment(pay, acct.QuickBooks_Customer_Id__c, '1');
         System.Test.stopTest();
     }
 }

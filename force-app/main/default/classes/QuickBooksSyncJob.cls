@@ -16,12 +16,12 @@ public with sharing class QuickBooksSyncJob implements Queueable, Database.Allow
                 QuickBooksService.createOrUpdateCustomer(acct);
             }
         } else if (sObjectType == 'rtms__CustomerInvoice__c') {
-            for (rtms__CustomerInvoice__c inv : [SELECT Id, Account__c, Invoice_Number__c,
+            for (rtms__CustomerInvoice__c inv : [SELECT Id, Account__c, Account__r.QuickBooks_Customer_Id__c, Invoice_Number__c,
                     Invoice_Date__c, Invoice_Due_Date__c,
                     Invoice_Comments__c, QuickBooks_Invoice_Id__c,
                     QuickBooks_Invoice_SyncToken__c
                 FROM rtms__CustomerInvoice__c WHERE Id IN :recordIds]) {
-                QuickBooksService.createOrUpdateInvoice(inv);
+                QuickBooksService.createOrUpdateInvoice(inv, inv.Account__r.QuickBooks_Customer_Id__c);
             }
         } else if (sObjectType == 'rtms__CustomerInvoiceAccessorial__c') {
             List<rtms__CustomerInvoiceAccessorial__c> lines = [SELECT Id, Name, rtms__Charge__c,
@@ -44,11 +44,12 @@ public with sharing class QuickBooksSyncJob implements Queueable, Database.Allow
                 }
             }
         } else if (sObjectType == 'rtms__CustomerPayment__c') {
-            for (rtms__CustomerPayment__c pay : [SELECT Id, Account__c,
+            for (rtms__CustomerPayment__c pay : [SELECT Id, Account__c, Account__r.QuickBooks_Customer_Id__c,
                     rtms__Payment_Amount__c, rtms__Payment_Date__c,
-                    rtms__Check_Reference_Number__c, CustomerInvoice__c
+                    rtms__Check_Reference_Number__c, CustomerInvoice__c, CustomerInvoice__r.QuickBooks_Invoice_Id__c
                 FROM rtms__CustomerPayment__c WHERE Id IN :recordIds]) {
-                QuickBooksService.createPayment(pay);
+                QuickBooksService.createPayment(pay, pay.Account__r.QuickBooks_Customer_Id__c,
+                        pay.CustomerInvoice__r.QuickBooks_Invoice_Id__c);
             }
         }
     }

@@ -27,12 +27,12 @@ public with sharing class QuickBooksService {
         QuickBooksApi.send(method, resource, body);
     }
 
-    public static void createOrUpdateInvoice(rtms__CustomerInvoice__c inv) {
+    public static void createOrUpdateInvoice(rtms__CustomerInvoice__c inv, String qbCustomerId) {
         Boolean isUpdate = String.isNotBlank(inv.QuickBooks_Invoice_Id__c);
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/invoice');
         Map<String,Object> body = new Map<String,Object>{
-            'CustomerRef' => new Map<String,Object>{'value'=>inv.Account__c},
+            'CustomerRef' => new Map<String,Object>{'value'=>qbCustomerId},
             'DocNumber' => inv.Invoice_Number__c,
             'TxnDate' => (inv.Invoice_Date__c != null ? String.valueOf(inv.Invoice_Date__c) : null),
             'DueDate' => (inv.Invoice_Due_Date__c != null ? String.valueOf(inv.Invoice_Due_Date__c) : null),
@@ -67,10 +67,10 @@ public with sharing class QuickBooksService {
         QuickBooksApi.send('POST', resource, body);
     }
 
-    public static void createPayment(rtms__CustomerPayment__c pay) {
+    public static void createPayment(rtms__CustomerPayment__c pay, String qbCustomerId, String qbInvoiceId) {
         String resource = baseUrl('/payment');
         Map<String,Object> body = new Map<String,Object>{
-            'CustomerRef' => new Map<String,Object>{'value'=>pay.Account__c},
+            'CustomerRef' => new Map<String,Object>{'value'=>qbCustomerId},
             'TotalAmt' => pay.rtms__Payment_Amount__c,
             'TxnDate' => (pay.rtms__Payment_Date__c != null ? String.valueOf(pay.rtms__Payment_Date__c) : null),
             'PaymentRefNum' => pay.rtms__Check_Reference_Number__c,
@@ -79,7 +79,7 @@ public with sharing class QuickBooksService {
                     'Amount' => pay.rtms__Payment_Amount__c,
                     'LinkedTxn' => new List<Object>{
                         new Map<String,Object>{
-                            'TxnId' => pay.CustomerInvoice__c,
+                            'TxnId' => qbInvoiceId,
                             'TxnType' => 'Invoice'
                         }
                     }
