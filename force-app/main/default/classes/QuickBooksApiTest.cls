@@ -21,7 +21,7 @@ private class QuickBooksApiTest {
         Mock m = new Mock(200);
         System.Test.setMock(HttpCalloutMock.class, m);
         System.Test.startTest();
-        HttpResponse res = QuickBooksApi.send('GET', '/v3/company/1/customer', null);
+        HttpResponse res = QuickBooksApi.send('GET', '/v3/company/9341454816381446/customer', null);
         System.Test.stopTest();
         System.assertEquals(200, res.getStatusCode());
     }
@@ -31,7 +31,7 @@ private class QuickBooksApiTest {
         System.Test.setMock(HttpCalloutMock.class, m);
         Boolean thrown = false;
         try {
-            QuickBooksApi.send('GET', '/v3/company/1/customer', null);
+            QuickBooksApi.send('GET', '/v3/company/9341454816381446/customer', null);
         } catch (Exception e) {
             thrown = true;
         }
