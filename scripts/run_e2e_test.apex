@@ -4,7 +4,7 @@
 QuickBooksServiceTest.Mock mock = new QuickBooksServiceTest.Mock();
 System.Test.setMock(HttpCalloutMock.class, mock);
 
-Account acct = new Account(Name='Test Acct', DBA_Name__c='DBA', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606', QuickBooks_Email__c='test@example.com');
+Account acct = new Account(Name='Test Acct', DBA_Name__c='DBA', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606', rtms__QuickBooks_Email__c='test@example.com');
 insert acct;
 
 rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
@@ -19,7 +19,7 @@ acc.put('rtms__Mode__c','Truckload');
 insert acc;
 Id accId = acc.Id;
 
-rtms__CustomerInvoiceAccessorial__c line = new rtms__CustomerInvoiceAccessorial__c(Name='Line', rtms__Charge__c=5, QBO_Item_Id__c='123', rtms__Unit_Price__c=5, rtms__Quantity__c=1);
+rtms__CustomerInvoiceAccessorial__c line = new rtms__CustomerInvoiceAccessorial__c(Name='Line', rtms__Charge__c=5, rtms__QBO_Item_Id__c='123', rtms__Unit_Price__c=5, rtms__Quantity__c=1);
 line.put('rtms__Customer_Invoice__c', inv.Id);
 line.put('rtms__Accessorial__c', accId);
 

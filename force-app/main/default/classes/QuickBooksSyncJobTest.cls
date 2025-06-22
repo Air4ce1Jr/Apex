@@ -13,9 +13,12 @@ private class QuickBooksSyncJobTest {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
         rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
+        Account acct = new Account(Name='ACC');
+        insert acct;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(
             Name='Inv',
             rtms__Load__c=load.Id,
+            rtms__Account__c=acct.Id,
             rtms__Invoice_Date__c=Date.today(),
             rtms__Invoice_Due_Date__c=Date.today().addDays(1),
             rtms__Invoice_Total__c=5
@@ -40,11 +43,14 @@ private class QuickBooksSyncJobTest {
 
     @IsTest static void testLineAndPaymentQueueable() {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Account acct = new Account(Name='ACC');
+        insert acct;
         rtms__Load__c load = new rtms__Load__c(Name='L2', rtms__Total_Weight__c=1);
         insert load;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='Inv2', rtms__Load__c=load.Id,
+            rtms__Account__c=acct.Id,
             rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1),
-            rtms__Invoice_Total__c=2, QuickBooks_Invoice_Id__c='123');
+            rtms__Invoice_Total__c=2, rtms__QuickBooks_Invoice_Id__c='123');
         insert inv;
         SObject acc = Schema.getGlobalDescribe().get('rtms__Accessorial__c').newSObject();
         acc.put('Name', 'A');
@@ -52,13 +58,14 @@ private class QuickBooksSyncJobTest {
         insert acc;
         Id accId = acc.Id;
         rtms__CustomerInvoiceAccessorial__c line = new rtms__CustomerInvoiceAccessorial__c(Name='line', rtms__Charge__c=1,
-            QBO_Item_Id__c='1', rtms__Unit_Price__c=1, rtms__Quantity__c=1);
+            rtms__QBO_Item_Id__c='1', rtms__Unit_Price__c=1, rtms__Quantity__c=1);
         line.put('rtms__Customer_Invoice__c', inv.Id);
         line.put('rtms__Accessorial__c', accId);
         insert line;
         rtms__CustomerPayment__c pay = new rtms__CustomerPayment__c(rtms__Payment_Amount__c=1, rtms__Check_Reference_Number__c='1');
         pay.put('rtms__Customer_Invoice__c', inv.Id);
         pay.put('rtms__Load__c', load.Id);
+        pay.put('rtms__Account__c', acct.Id);
         insert pay;
         System.Test.startTest();
         System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerInvoiceAccessorial__c', new List<Id>{line.Id}));

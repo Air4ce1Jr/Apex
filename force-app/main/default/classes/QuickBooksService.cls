@@ -5,12 +5,12 @@ public with sharing class QuickBooksService {
     }
 
     public static void createOrUpdateCustomer(Account acct) {
-        Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
+        Boolean isUpdate = String.isNotBlank(acct.rtms__QuickBooks_Customer_Id__c);
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/customer');
         Map<String,Object> body = new Map<String,Object>{
             'DisplayName' => acct.DBA_Name__c,
-            'PrimaryEmailAddr' => new Map<String,Object>{'Address'=>acct.QuickBooks_Email__c},
+            'PrimaryEmailAddr' => new Map<String,Object>{'Address'=>acct.rtms__QuickBooks_Email__c},
             'BillAddr' => new Map<String,Object>{
                 'Line1'=>acct.BillingStreet,
                 'City'=>acct.BillingCity,
@@ -19,8 +19,8 @@ public with sharing class QuickBooksService {
             }
         };
         if (isUpdate) {
-            body.put('Id', acct.QuickBooks_Customer_Id__c);
-            body.put('SyncToken', acct.QuickBooks_Customer_SyncToken__c);
+            body.put('Id', acct.rtms__QuickBooks_Customer_Id__c);
+            body.put('SyncToken', acct.rtms__QuickBooks_Customer_SyncToken__c);
         } else {
             body.put('Active', true);
         }
@@ -28,19 +28,19 @@ public with sharing class QuickBooksService {
     }
 
     public static void createOrUpdateInvoice(rtms__CustomerInvoice__c inv) {
-        Boolean isUpdate = String.isNotBlank(inv.QuickBooks_Invoice_Id__c);
+        Boolean isUpdate = String.isNotBlank(inv.rtms__QuickBooks_Invoice_Id__c);
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/invoice');
         Map<String,Object> body = new Map<String,Object>{
-            'CustomerRef' => new Map<String,Object>{'value'=>inv.Account__c},
-            'DocNumber' => inv.Invoice_Number__c,
-            'TxnDate' => (inv.Invoice_Date__c != null ? String.valueOf(inv.Invoice_Date__c) : null),
-            'DueDate' => (inv.Invoice_Due_Date__c != null ? String.valueOf(inv.Invoice_Due_Date__c) : null),
-            'PrivateNote' => inv.Invoice_Comments__c
+            'CustomerRef' => new Map<String,Object>{'value'=>inv.rtms__Account__c},
+            'DocNumber' => inv.rtms__Invoice_Number__c,
+            'TxnDate' => (inv.rtms__Invoice_Date__c != null ? String.valueOf(inv.rtms__Invoice_Date__c) : null),
+            'DueDate' => (inv.rtms__Invoice_Due_Date__c != null ? String.valueOf(inv.rtms__Invoice_Due_Date__c) : null),
+            'PrivateNote' => inv.rtms__Invoice_Comments__c
         };
         if (isUpdate) {
-            body.put('Id', inv.QuickBooks_Invoice_Id__c);
-            body.put('SyncToken', inv.QuickBooks_Invoice_SyncToken__c);
+            body.put('Id', inv.rtms__QuickBooks_Invoice_Id__c);
+            body.put('SyncToken', inv.rtms__QuickBooks_Invoice_SyncToken__c);
         }
         QuickBooksApi.send(method, resource, body);
     }
@@ -54,7 +54,7 @@ public with sharing class QuickBooksService {
                 'Description' => line.Name,
                 'Amount' => line.rtms__Charge__c,
                 'SalesItemLineDetail' => new Map<String,Object>{
-                    'ItemRef' => new Map<String,Object>{'value'=>line.QBO_Item_Id__c},
+                    'ItemRef' => new Map<String,Object>{'value'=>line.rtms__QBO_Item_Id__c},
                     'UnitPrice' => line.rtms__Unit_Price__c,
                     'Qty' => line.rtms__Quantity__c
                 }
@@ -70,7 +70,7 @@ public with sharing class QuickBooksService {
     public static void createPayment(rtms__CustomerPayment__c pay) {
         String resource = baseUrl('/payment');
         Map<String,Object> body = new Map<String,Object>{
-            'CustomerRef' => new Map<String,Object>{'value'=>pay.Account__c},
+            'CustomerRef' => new Map<String,Object>{'value'=>pay.rtms__Account__c},
             'TotalAmt' => pay.rtms__Payment_Amount__c,
             'TxnDate' => (pay.rtms__Payment_Date__c != null ? String.valueOf(pay.rtms__Payment_Date__c) : null),
             'PaymentRefNum' => pay.rtms__Check_Reference_Number__c,
@@ -79,7 +79,7 @@ public with sharing class QuickBooksService {
                     'Amount' => pay.rtms__Payment_Amount__c,
                     'LinkedTxn' => new List<Object>{
                         new Map<String,Object>{
-                            'TxnId' => pay.CustomerInvoice__c,
+                            'TxnId' => pay.rtms__CustomerInvoice__c,
                             'TxnType' => 'Invoice'
                         }
                     }
