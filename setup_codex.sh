@@ -10,27 +10,33 @@ SANDBOX_URL="force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3F
 PROD_URL="force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5lVdH_iY72liCdetimLZp65Rw2sbBUnRRCs_QfcTgPwSZzVfw7@continental-tds.my.salesforce.com"
 
 SOURCE_PATH="force-app/main/default"
-MODE="${1:-test}"   # test, validate, or deploy
-ORG_TARGET="${2:-sandbox}"  # sandbox or production
+MODE="${1:-test}"             # test, validate, or deploy
+ORG_TARGET="${2:-sandbox}"   # sandbox or production
 
-
-### === STEP 1: Internet + SFDX Checks ===
-echo ">>> Checking internet connection..."
+### === STEP 1: Internet + DNS Test ===
+echo ">>> Checking internet access..."
 curl -Is https://login.salesforce.com | grep HTTP || { echo "❌ ERROR: No internet access"; exit 1; }
 
-echo ">>> Verifying sfdx CLI..."
-if ! command -v sfdx >/dev/null 2>&1; then
-  echo "⚠️ Installing Node and Salesforce CLI..."
-  curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-  sudo apt-get install -y nodejs
+### === STEP 2: Install Node + SFDX Locally (no sudo) ===
+echo ">>> Ensuring local Node.js + SFDX CLI are installed..."
+
+if ! command -v sfdx >/dev/null; then
+  echo ">>> Installing Node.js (no sudo)..."
+  curl -fsSL https://unofficial-builds.nodejs.org/download/release/v18.18.0/node-v18.18.0-linux-x64.tar.gz -o node.tar.gz
+  mkdir -p "$HOME/.local/node"
+  tar -xzf node.tar.gz -C "$HOME/.local/node" --strip-components=1
+  export PATH="$HOME/.local/node/bin:$PATH"
+  rm node.tar.gz
+
+  echo ">>> Installing SFDX CLI (no sudo)..."
   npm install -g sfdx-cli
   hash -r
 fi
 
-echo "✅ SFDX version: $(sfdx --version)"
+echo "✅ SFDX CLI version: $(sfdx --version)"
+echo "✅ Node version: $(node -v)"
 
-
-### === STEP 2: Authenticate Orgs ===
+### === STEP 3: Re-Authenticate Orgs ===
 echo ">>> Authenticating Sandbox..."
 echo "$SANDBOX_URL" > sandboxAuthUrl.txt
 sfdx force:auth:sfdxurl:store --sfdxurlfile sandboxAuthUrl.txt --setalias "$SANDBOX_ALIAS"
@@ -41,11 +47,10 @@ echo "$PROD_URL" > prodAuthUrl.txt
 sfdx force:auth:sfdxurl:store --sfdxurlfile prodAuthUrl.txt --setalias "$PROD_ALIAS"
 rm prodAuthUrl.txt
 
-echo ">>> Connected Orgs:"
+echo ">>> Connected orgs:"
 sfdx force:org:list --all
 
-
-### === STEP 3: Determine Org Target ===
+### === STEP 4: Determine Org Target ===
 if [[ "$ORG_TARGET" == "sandbox" ]]; then
   ORG="$SANDBOX_ALIAS"
 elif [[ "$ORG_TARGET" == "production" ]]; then
@@ -55,7 +60,7 @@ else
   exit 1
 fi
 
-### === STEP 4: Run Selected Mode ===
+### === STEP 5: Execute Based on Mode ===
 case "$MODE" in
   test)
     echo ">>> Running Apex tests against $ORG"
