@@ -7,14 +7,14 @@
 
   * `SFDX_AUTH_URL` — OAuth web sfdxAuthUrl for your sandbox
   * `SFDX_DEFAULTUSERNAME` — alias or username of your sandbox org
-* **Allowed network** (setup phase only):
+* **Allowed network**:
 
   * `registry.npmjs.org` (to install sfdx-cli)
   * `deb.debian.org` / `archive.ubuntu.com` (for Node.js/npm)
-  * `github.com` / `raw.githubusercontent.com` (sfdx-cli binary)
-  * `developer.salesforce.com` (Salesforce CLI installer downloads)
-  * `test.salesforce.com` (sandbox auth & metadata)
-  * `login.salesforce.com` (prod auth if needed)
+  * `github.com` / `raw.githubusercontent.com` 
+  * `developer.salesforce.com` 
+  * `test.salesforce.com` 
+  * `login.salesforce.com`
 
 ## 2. Reference Documentation
 
@@ -144,7 +144,7 @@ Below is the **complete Step 4 mapping & payload guide** in a format you can dro
 #### 1. Create Customer
 
 ```json
-POST callout:QuickBooks_NC/v3/company/<realmID>/customer?minorversion=65
+POST callout:QuickBooks_NC/v3/company/9341454816381446 /customer?minorversion=65
 ```
 
 ```json
@@ -164,7 +164,7 @@ POST callout:QuickBooks_NC/v3/company/<realmID>/customer?minorversion=65
 #### 2. Update Customer
 
 ```json
-PATCH callout:QuickBooks_NC/v3/company/<realmID>/customer?minorversion=65
+PATCH callout:QuickBooks_NC/v3/company/9341454816381446/customer?minorversion=65
 ```
 
 ```json
@@ -185,7 +185,7 @@ PATCH callout:QuickBooks_NC/v3/company/<realmID>/customer?minorversion=65
 #### 3. Create Invoice (with optional Lines)
 
 ```json
-POST callout:QuickBooks_NC/v3/company/<realmID>/invoice?minorversion=65
+POST callout:QuickBooks_NC/v3/company/9341454816381446/invoice?minorversion=65
 ```
 
 ```json
@@ -218,7 +218,7 @@ POST callout:QuickBooks_NC/v3/company/<realmID>/invoice?minorversion=65
 #### 4. Create Payment
 
 ```json
-POST callout:QuickBooks_NC/v3/company/<realmID>/payment?minorversion=65
+POST callout:QuickBooks_NC/v3/company/9341454816381446 /payment?minorversion=65
 ```
 
 ```json
