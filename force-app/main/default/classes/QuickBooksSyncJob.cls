@@ -36,11 +36,12 @@ public with sharing class QuickBooksSyncJob implements Queueable, Database.Allow
                 byInv.get(l.CustomerInvoice__c).add(l);
             }
             Map<Id, rtms__CustomerInvoice__c> invoices = new Map<Id, rtms__CustomerInvoice__c>([
-                SELECT Id, QuickBooks_Invoice_Id__c FROM rtms__CustomerInvoice__c WHERE Id IN :byInv.keySet()
+                SELECT Id, QuickBooks_Invoice_Id__c, QuickBooks_Invoice_SyncToken__c FROM rtms__CustomerInvoice__c WHERE Id IN :byInv.keySet()
             ]);
             for (Id invId : byInv.keySet()) {
                 if (invoices.containsKey(invId)) {
-                    QuickBooksService.createInvoiceLines(byInv.get(invId), invoices.get(invId).QuickBooks_Invoice_Id__c);
+                    rtms__CustomerInvoice__c invRecord = invoices.get(invId);
+                    QuickBooksService.createInvoiceLines(byInv.get(invId), invRecord.QuickBooks_Invoice_Id__c, invRecord.QuickBooks_Invoice_SyncToken__c);
                 }
             }
         } else if (sObjectType == 'rtms__CustomerPayment__c') {

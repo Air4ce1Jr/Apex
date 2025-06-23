@@ -43,8 +43,25 @@ private class QuickBooksServiceTest {
         insert pay;
         System.Test.startTest();
         QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
-        QuickBooksService.createInvoiceLines(new List<rtms__CustomerInvoiceAccessorial__c>{line}, '1');
+        QuickBooksService.createInvoiceLines(new List<rtms__CustomerInvoiceAccessorial__c>{line}, '1', '0');
         QuickBooksService.createPayment(pay, acct.QuickBooks_Customer_Id__c, '1');
+        System.Test.stopTest();
+    }
+
+    @IsTest static void testUpdateCustomerAndInvoice() {
+        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        rtms__Load__c load = new rtms__Load__c(Name='L3', rtms__Total_Weight__c=1);
+        insert load;
+        Account acct = new Account(Name='B', DBA_Name__c='DBA', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606', QuickBooks_Email__c='b@example.com',
+            QuickBooks_Customer_Id__c='123', QuickBooks_Customer_SyncToken__c='0');
+        insert acct;
+        rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv2', Account__c=acct.Id,
+            rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1,
+            QuickBooks_Invoice_Id__c='456', QuickBooks_Invoice_SyncToken__c='1');
+        insert inv;
+        System.Test.startTest();
+        QuickBooksService.createOrUpdateCustomer(acct);
+        QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
         System.Test.stopTest();
     }
 }
