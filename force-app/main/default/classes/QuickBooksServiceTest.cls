@@ -47,6 +47,7 @@ private class QuickBooksServiceTest {
 
     @IsTest static void testUpdateCustomerAndInvoice() {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
+ j734av-codex/fix-missing-fields-in-quickbooks-api-payload
         QuickBooksTriggerUtil.skipAsync = true;
         rtms__Load__c load = new rtms__Load__c(Name='L3', rtms__Total_Weight__c=1);
         Account acct = new Account(Name='B', DBA_Name__c='DBA', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606', QuickBooks_Email__c='b@example.com',
@@ -59,5 +60,7 @@ private class QuickBooksServiceTest {
         QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
         System.Test.stopTest();
         System.assertEquals('99', res.id);
+
+ main
     }
 }
