@@ -5,8 +5,10 @@ set -x
 ### === CONFIGURATION ===
 SANDBOX_ALIAS="QuickBooksSandbox"
 PROD_ALIAS="ProductionOrg"
+
 SANDBOX_URL="force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3FdO_2hIk0UdadC4q21_e1cjppG8LnpQ5CTFjBcVrvp@continental-tds--quickbooks.sandbox.my.salesforce.com"
 PROD_URL="force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5lVdH_iY72liCdetimLZp65Rw2sbBUnRRCs_QfcTgPwSZzVfw7@continental-tds.my.salesforce.com"
+
 SOURCE_PATH="force-app/main/default"
 MODE="${1:-test}"             # Options: test, validate, deploy
 ORG_TARGET="${2:-sandbox}"   # Options: sandbox or production
@@ -15,15 +17,13 @@ ORG_TARGET="${2:-sandbox}"   # Options: sandbox or production
 echo ">>> Checking internet access..."
 curl -Is https://login.salesforce.com | grep HTTP || { echo "❌ ERROR: No internet access"; exit 1; }
 
-### === STEP 2: Node.js + SFDX Install (no sudo) ===
+### === STEP 2: Install Node.js + SFDX Locally (no sudo) ===
 echo ">>> Ensuring local Node.js + SFDX CLI..."
 
 if ! command -v sfdx >/dev/null; then
   echo ">>> Installing Node.js (no sudo)..."
-
   NODE_VERSION="v18.18.0"
-  NODE_DISTRO="linux-x64"
-  NODE_ARCHIVE="node-$NODE_VERSION-$NODE_DISTRO.tar.xz"
+  NODE_ARCHIVE="node-$NODE_VERSION-linux-x64.tar.xz"
   curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/$NODE_ARCHIVE" -o node.tar.xz
   mkdir -p "$HOME/.local/node"
   tar -xf node.tar.xz -C "$HOME/.local/node" --strip-components=1
@@ -31,9 +31,10 @@ if ! command -v sfdx >/dev/null; then
   export PATH="$HOME/.local/node/bin:$PATH"
 
   echo ">>> Configuring npm for unreliable networks..."
-  npm config set fetch-retry-maxtimeout 120000   # max 2 minutes :contentReference[oaicite:6]{index=6}
-  npm config set fetch-retry-mintimeout 20000    # min 20 seconds :contentReference[oaicite:7]{index=7}
-  npm config set prefer-offline true             # use cache first :contentReference[oaicite:8]{index=8}
+  npm config set registry http://registry.npmjs.org/          # avoid HTTPS resets :contentReference[oaicite:1]{index=1}
+  npm config set fetch-retry-maxtimeout 120000               # increase retry timeout :contentReference[oaicite:2]{index=2}
+  npm config set fetch-retry-mintimeout 20000                # increase initial delay :contentReference[oaicite:3]{index=3}
+  npm config set prefer-offline true                         # prioritize cache :contentReference[oaicite:4]{index=4}
 
   retry_npm_install() {
     local tries=0
