@@ -9,11 +9,26 @@ public with sharing class QuickBooksSyncJob implements Queueable, Database.Allow
 
     public void execute(QueueableContext context) {
         if (sObjectType == 'Account') {
+            List<Account> updates = new List<Account>();
             for (Account acct : [SELECT Id, DBA_Name__c, QuickBooks_Email__c,
                     BillingStreet, BillingCity, BillingState, BillingPostalCode,
                     QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
                 FROM Account WHERE Id IN :recordIds]) {
-                QuickBooksService.createOrUpdateCustomer(acct);
+                QuickBooksService.CustomerResult res = QuickBooksService.createOrUpdateCustomer(acct);
+                Account upd = new Account(Id=acct.Id);
+                Boolean changed = false;
+                if (String.isNotBlank(res.id)) {
+                    upd.QuickBooks_Customer_Id__c = res.id;
+                    changed = true;
+                }
+                if (String.isNotBlank(res.syncToken)) {
+                    upd.QuickBooks_Customer_SyncToken__c = res.syncToken;
+                    changed = true;
+                }
+                if (changed) updates.add(upd);
+            }
+            if (!updates.isEmpty()) {
+                update updates;
             }
         } else if (sObjectType == 'rtms__CustomerInvoice__c') {
             for (rtms__CustomerInvoice__c inv : [SELECT Id, Account__c, Account__r.QuickBooks_Customer_Id__c, Invoice_Number__c,
@@ -36,11 +51,12 @@ public with sharing class QuickBooksSyncJob implements Queueable, Database.Allow
                 byInv.get(l.CustomerInvoice__c).add(l);
             }
             Map<Id, rtms__CustomerInvoice__c> invoices = new Map<Id, rtms__CustomerInvoice__c>([
-                SELECT Id, QuickBooks_Invoice_Id__c FROM rtms__CustomerInvoice__c WHERE Id IN :byInv.keySet()
+                SELECT Id, QuickBooks_Invoice_Id__c, QuickBooks_Invoice_SyncToken__c FROM rtms__CustomerInvoice__c WHERE Id IN :byInv.keySet()
             ]);
             for (Id invId : byInv.keySet()) {
                 if (invoices.containsKey(invId)) {
-                    QuickBooksService.createInvoiceLines(byInv.get(invId), invoices.get(invId).QuickBooks_Invoice_Id__c);
+                    rtms__CustomerInvoice__c invRecord = invoices.get(invId);
+                    QuickBooksService.createInvoiceLines(byInv.get(invId), invRecord.QuickBooks_Invoice_Id__c, invRecord.QuickBooks_Invoice_SyncToken__c);
                 }
             }
         } else if (sObjectType == 'rtms__CustomerPayment__c') {
