@@ -8,7 +8,7 @@ public with sharing class QuickBooksInvoiceService {
     }
 
     private static String getCompanyId() {
-        return '1234567890';
+        return '9341454816381446';
     }
 }
 
