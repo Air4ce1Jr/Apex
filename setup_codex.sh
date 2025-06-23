@@ -13,28 +13,34 @@ SOURCE_PATH="force-app/main/default"
 MODE="${1:-test}"             # test, validate, or deploy
 ORG_TARGET="${2:-sandbox}"   # sandbox or production
 
-### === STEP 1: Internet + DNS Test ===
+### === STEP 1: Internet Check ===
 echo ">>> Checking internet access..."
 curl -Is https://login.salesforce.com | grep HTTP || { echo "❌ ERROR: No internet access"; exit 1; }
 
-### === STEP 2: Install Node + SFDX Locally (no sudo) ===
+### === STEP 2: Install Node.js + SFDX Locally (no sudo) ===
 echo ">>> Ensuring local Node.js + SFDX CLI are installed..."
 
 if ! command -v sfdx >/dev/null; then
   echo ">>> Installing Node.js (no sudo)..."
-  curl -fsSL https://unofficial-builds.nodejs.org/download/release/v18.18.0/node-v18.18.0-linux-x64.tar.gz -o node.tar.gz
-  mkdir -p "$HOME/.local/node"
-  tar -xzf node.tar.gz -C "$HOME/.local/node" --strip-components=1
-  export PATH="$HOME/.local/node/bin:$PATH"
-  rm node.tar.gz
 
-  echo ">>> Installing SFDX CLI (no sudo)..."
+  NODE_VERSION="v18.18.0"
+  NODE_DISTRO="linux-x64"
+  NODE_BASE_URL="https://nodejs.org/dist"
+  NODE_ARCHIVE="node-$NODE_VERSION-$NODE_DISTRO.tar.xz"
+
+  curl -fsSL "$NODE_BASE_URL/$NODE_VERSION/$NODE_ARCHIVE" -o node.tar.xz
+  mkdir -p "$HOME/.local/node"
+  tar -xf node.tar.xz -C "$HOME/.local/node" --strip-components=1
+  rm node.tar.xz
+  export PATH="$HOME/.local/node/bin:$PATH"
+
+  echo ">>> Installing Salesforce CLI (no sudo)..."
   npm install -g sfdx-cli
   hash -r
 fi
 
 echo "✅ SFDX CLI version: $(sfdx --version)"
-echo "✅ Node version: $(node -v)"
+echo "✅ Node.js version: $(node -v)"
 
 ### === STEP 3: Re-Authenticate Orgs ===
 echo ">>> Authenticating Sandbox..."
@@ -60,7 +66,7 @@ else
   exit 1
 fi
 
-### === STEP 5: Execute Based on Mode ===
+### === STEP 5: Execute Command Based on Mode ===
 case "$MODE" in
   test)
     echo ">>> Running Apex tests against $ORG"
