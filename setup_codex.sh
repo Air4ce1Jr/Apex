@@ -2,119 +2,94 @@
 set -euo pipefail
 set -x
 
-### === CONFIGURATION ===
+### ——— CONFIGURATION ———
 SANDBOX_ALIAS="QuickBooksSandbox"
 PROD_ALIAS="ProductionOrg"
-
-SANDBOX_URL="force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3FdO_2hIk0UdadC4q21_e1cjppG8LnpQ5CTFjBcVrvp@continental-tds--quickbooks.sandbox.my.salesforce.com"
-PROD_URL="force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5lVdH_iY72liCdetimLZp65Rw2sbBUnRRCs_QfcTgPwSZzVfw7@continental-tds.my.salesforce.com"
-
-SOURCE_PATH="force-app/main/default"
-MODE="${1:-test}"             # Options: test, validate, deploy
+MODE="${1:-test}"            # Options: test | validate | deploy
 ORG_TARGET="${2:-sandbox}"   # Options: sandbox or production
+SOURCE_PATH="force-app/main/default"
 
-### === STEP 1: Internet Check ===
-echo ">>> Checking internet access..."
-curl -Is https://login.salesforce.com | grep HTTP || { echo "❌ ERROR: No internet access"; exit 1; }
-
-### === STEP 2: Install Node.js + SFDX Locally (no sudo) ===
-echo ">>> Ensuring local Node.js + SFDX CLI..."
-
-if ! command -v sfdx >/dev/null; then
-  echo ">>> Installing Node.js (no sudo)..."
-  NODE_VERSION="v18.18.0"
-  NODE_ARCHIVE="node-$NODE_VERSION-linux-x64.tar.xz"
-  curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/$NODE_ARCHIVE" -o node.tar.xz
-  mkdir -p "$HOME/.local/node"
-  tar -xf node.tar.xz -C "$HOME/.local/node" --strip-components=1
-  rm node.tar.xz
-  export PATH="$HOME/.local/node/bin:$PATH"
-
-  echo ">>> Configuring npm for unreliable networks..."
-  npm config set registry http://registry.npmjs.org/          # avoid HTTPS resets :contentReference[oaicite:1]{index=1}
-  npm config set fetch-retry-maxtimeout 120000               # increase retry timeout :contentReference[oaicite:2]{index=2}
-  npm config set fetch-retry-mintimeout 20000                # increase initial delay :contentReference[oaicite:3]{index=3}
-  npm config set prefer-offline true                         # prioritize cache :contentReference[oaicite:4]{index=4}
-
-  retry_npm_install() {
-    local tries=0
-    until npm install -g sfdx-cli --prefer-offline; do
-      ((tries++))
-      echo "⚠️ npm install failed (try #$tries). Retrying..."
-      sleep 5
-      [[ $tries -gt 3 ]] && { echo "❌ npm install failed after $tries tries"; exit 1; }
+### ——— HELPER: Abort stuck Apex Test jobs ———
+abort_stuck_tests() {
+  local ORG="$1"
+  echo ">>> Checking for queued ApexTestQueueItem in $ORG..."
+  local QUEUED_IDS
+  QUEUED_IDS=$(sfdx force:data:soql:query -u "$ORG" \
+    -q "SELECT Id FROM ApexTestQueueItem WHERE Status='Queued'" --json \
+    | jq -r '.result.records[].Id' || true)
+  
+  if [[ -z "$QUEUED_IDS" ]]; then
+    echo "✔️ No queued jobs."
+  else
+    echo "⚠️ Found queued jobs: $QUEUED_IDS – aborting..."
+    for id in $QUEUED_IDS; do
+      sfdx force:data:record:update \
+        -s ApexTestQueueItem -i "$id" -v "Status='Aborted'" -u "$ORG"
+      echo "→ Aborted job $id"
     done
-  }
+  fi
+}
 
-  echo ">>> Installing Salesforce CLI with retries..."
-  retry_npm_install
-  hash -r
-fi
-
-echo "✅ Installed: sfdx v$(sfdx --version), node v$(node -v)"
-
-### === STEP 3: Authenticate Orgs ===
-echo ">>> Authenticating Sandbox..."
+### ——— STEP 1: Authenticate Orgs ———
+echo "Authenticating to Sandbox..."
 echo "$SANDBOX_URL" > sandboxAuthUrl.txt
-sfdx force:auth:sfdxurl:store --sfdxurlfile sandboxAuthUrl.txt --setalias "$SANDBOX_ALIAS"
+sfdx force:auth:sfdxurl:store -f sandboxAuthUrl.txt -a "$SANDBOX_ALIAS"
 rm sandboxAuthUrl.txt
 
-echo ">>> Authenticating Production..."
+echo "Authenticating to Production..."
 echo "$PROD_URL" > prodAuthUrl.txt
-sfdx force:auth:sfdxurl:store --sfdxurlfile prodAuthUrl.txt --setalias "$PROD_ALIAS"
+sfdx force:auth:sfdxurl:store -f prodAuthUrl.txt -a "$PROD_ALIAS"
 rm prodAuthUrl.txt
 
 echo "✅ Connected orgs:"
-sfdx force:org:list --all
+sfdx org list --all
 
-### === STEP 4: Select Org ===
+### ——— STEP 2: Decide target org ———
 if [[ "$ORG_TARGET" == "production" ]]; then
   ORG="$PROD_ALIAS"
 elif [[ "$ORG_TARGET" == "sandbox" ]]; then
   ORG="$SANDBOX_ALIAS"
 else
-  echo "❌ Invalid org target: $ORG_TARGET"
+  echo "❌ Invalid ORG_TARGET: $ORG_TARGET"
   exit 1
 fi
 
-### === STEP 5: Execute Mode ===
+### ——— STEP 3: Run requested operation ———
 case "$MODE" in
   test)
-    echo "→ Running Apex tests on $ORG"
-    sfdx force:apex:test:run \
-      --targetusername "$ORG" \
-      --codecoverage \
-      --resultformat human \
-      --outputdir test-results \
-      --wait 10 \
-      --synchronous \
-      --loglevel DEBUG
+    abort_stuck_tests "$ORG"
+    echo "→ Running Apex tests on $ORG..."
+    sfdx apex run test \
+      -o "$ORG" \
+      -c \
+      -r human \
+      --wait 10 --synchronous
     ;;
+  
   validate)
-    echo "→ Validating deployment on $ORG"
+    abort_stuck_tests "$ORG"
+    echo "→ Validating deployment on $ORG..."
     sfdx force:source:deploy \
-      --targetusername "$ORG" \
-      --sourcepath "$SOURCE_PATH" \
-      --testlevel RunLocalTests \
-      --checkonly \
-      --wait 10 \
-      --verbose \
-      --loglevel DEBUG
+      -u "$ORG" \
+      -p "$SOURCE_PATH" \
+      -l RunLocalTests \
+      --checkonly --wait 10 --verbose
     ;;
+  
   deploy)
-    echo "→ Deploying to $ORG (tests WILL run)"
+    abort_stuck_tests "$ORG"
+    echo "→ Deploying to $ORG..."
     sfdx force:source:deploy \
-      --targetusername "$ORG" \
-      --sourcepath "$SOURCE_PATH" \
-      --testlevel RunLocalTests \
-      --wait 10 \
-      --verbose \
-      --loglevel DEBUG
+      -u "$ORG" \
+      -p "$SOURCE_PATH" \
+      -l RunLocalTests \
+      --wait 10 --verbose
     ;;
+  
   *)
-    echo "❌ Unknown mode: $MODE (use 'test', 'validate', or 'deploy')"
+    echo "❌ Unknown MODE: $MODE (use test|validate|deploy)"
     exit 1
     ;;
 esac
 
-echo "✅ '$MODE' completed on $ORG"
+echo "✅ $MODE operation completed on $ORG."
