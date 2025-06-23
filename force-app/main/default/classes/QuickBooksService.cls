@@ -4,7 +4,12 @@ public with sharing class QuickBooksService {
         return '/v3/company/' + COMPANY_ID + path;
     }
 
-    public static void createOrUpdateCustomer(Account acct) {
+    public class CustomerResult {
+        public String id;
+        public String syncToken;
+    }
+
+    public static CustomerResult createOrUpdateCustomer(Account acct) {
         Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/customer');
@@ -24,7 +29,20 @@ public with sharing class QuickBooksService {
         } else {
             body.put('Active', true);
         }
-        QuickBooksApi.send(method, resource, body);
+        HttpResponse res = QuickBooksApi.send(method, resource, body);
+        CustomerResult result = new CustomerResult();
+        try {
+            Map<String,Object> wrapper = (Map<String,Object>)JSON.deserializeUntyped(res.getBody());
+            if (wrapper.containsKey('Customer')) {
+                Map<String,Object> cust = (Map<String,Object>)wrapper.get('Customer');
+                result.id = (String)cust.get('Id');
+                Object st = cust.get('SyncToken');
+                if (st != null) result.syncToken = String.valueOf(st);
+            }
+        } catch (Exception e) {
+            // Ignore parse errors; result will be empty
+        }
+        return result;
     }
 
     public static void createOrUpdateInvoice(rtms__CustomerInvoice__c inv, String qbCustomerId) {
