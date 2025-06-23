@@ -2,119 +2,81 @@
 set -euo pipefail
 set -x
 
-### === CONFIGURATION ===
+# ——— CONFIG ———
 SANDBOX_ALIAS="QuickBooksSandbox"
 PROD_ALIAS="ProductionOrg"
-
-SANDBOX_URL="force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3FdO_2hIk0UdadC4q21_e1cjppG8LnpQ5CTFjBcVrvp@continental-tds--quickbooks.sandbox.my.salesforce.com"
-PROD_URL="force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5lVdH_iY72liCdetimLZp65Rw2sbBUnRRCs_QfcTgPwSZzVfw7@continental-tds.my.salesforce.com"
-
+MODE="${1:-validate}"       # validate | deploy
+ENV="${2:-sandbox}"          # sandbox | production
 SOURCE_PATH="force-app/main/default"
-MODE="${1:-test}"             # Options: test, validate, deploy
-ORG_TARGET="${2:-sandbox}"   # Options: sandbox or production
+MAX_RETRIES=3
 
-### === STEP 1: Internet Check ===
-echo ">>> Checking internet access..."
-curl -Is https://login.salesforce.com | grep HTTP || { echo "❌ ERROR: No internet access"; exit 1; }
+# ——— FUNCTION: abort stuck Apex test jobs ———
+abort_stuck_tests() {
+  local ORG="$1"
+  echo "» Checking for stuck Apex test jobs in $ORG..."
+  local IDS
+  IDS=$(sfdx force:data:soql:query -u "$ORG" \
+    -q "SELECT Id FROM ApexTestQueueItem WHERE Status='Queued'" --json \
+    | jq -r '.result.records[].Id' || true)
 
-### === STEP 2: Install Node.js + SFDX Locally (no sudo) ===
-echo ">>> Ensuring local Node.js + SFDX CLI..."
+  [[ -z "$IDS" ]] && { echo "✔ No queued jobs."; return; }
 
-if ! command -v sfdx >/dev/null; then
-  echo ">>> Installing Node.js (no sudo)..."
-  NODE_VERSION="v18.18.0"
-  NODE_ARCHIVE="node-$NODE_VERSION-linux-x64.tar.xz"
-  curl -fsSL "https://nodejs.org/dist/$NODE_VERSION/$NODE_ARCHIVE" -o node.tar.xz
-  mkdir -p "$HOME/.local/node"
-  tar -xf node.tar.xz -C "$HOME/.local/node" --strip-components=1
-  rm node.tar.xz
-  export PATH="$HOME/.local/node/bin:$PATH"
+  echo "⚠ Found queued jobs: $IDS — aborting..."
+  for id in $IDS; do
+    sfdx force:data:record:update -s ApexTestQueueItem -i "$id" \
+      -v "Status='Aborted'" -u "$ORG" || echo "⚠ Failed to abort $id"
+    echo "→ Aborted queue item $id"
+  done
+}
 
-  echo ">>> Configuring npm for unreliable networks..."
-  npm config set registry http://registry.npmjs.org/          # avoid HTTPS resets :contentReference[oaicite:1]{index=1}
-  npm config set fetch-retry-maxtimeout 120000               # increase retry timeout :contentReference[oaicite:2]{index=2}
-  npm config set fetch-retry-mintimeout 20000                # increase initial delay :contentReference[oaicite:3]{index=3}
-  npm config set prefer-offline true                         # prioritize cache :contentReference[oaicite:4]{index=4}
+# ——— AUTH ———
+echo "🔐 Authenticating sandbox..."
+echo "$SANDBOX_URL" > sb.txt
+sfdx force:auth:sfdxurl:store -f sb.txt -a "$SANDBOX_ALIAS"
+rm sb.txt
 
-  retry_npm_install() {
-    local tries=0
-    until npm install -g sfdx-cli --prefer-offline; do
-      ((tries++))
-      echo "⚠️ npm install failed (try #$tries). Retrying..."
-      sleep 5
-      [[ $tries -gt 3 ]] && { echo "❌ npm install failed after $tries tries"; exit 1; }
-    done
-  }
-
-  echo ">>> Installing Salesforce CLI with retries..."
-  retry_npm_install
-  hash -r
-fi
-
-echo "✅ Installed: sfdx v$(sfdx --version), node v$(node -v)"
-
-### === STEP 3: Authenticate Orgs ===
-echo ">>> Authenticating Sandbox..."
-echo "$SANDBOX_URL" > sandboxAuthUrl.txt
-sfdx force:auth:sfdxurl:store --sfdxurlfile sandboxAuthUrl.txt --setalias "$SANDBOX_ALIAS"
-rm sandboxAuthUrl.txt
-
-echo ">>> Authenticating Production..."
-echo "$PROD_URL" > prodAuthUrl.txt
-sfdx force:auth:sfdxurl:store --sfdxurlfile prodAuthUrl.txt --setalias "$PROD_ALIAS"
-rm prodAuthUrl.txt
+echo "🔐 Authenticating production..."
+echo "$PROD_URL" > prod.txt
+sfdx force:auth:sfdxurl:store -f prod.txt -a "$PROD_ALIAS"
+rm prod.txt
 
 echo "✅ Connected orgs:"
-sfdx force:org:list --all
+sfdx org list --all
 
-### === STEP 4: Select Org ===
-if [[ "$ORG_TARGET" == "production" ]]; then
-  ORG="$PROD_ALIAS"
-elif [[ "$ORG_TARGET" == "sandbox" ]]; then
-  ORG="$SANDBOX_ALIAS"
-else
-  echo "❌ Invalid org target: $ORG_TARGET"
-  exit 1
-fi
+# ——— PREP: SELECT ORG ———
+if [[ "$ENV" == "production" ]]; then ORG="$PROD_ALIAS"; else ORG="$SANDBOX_ALIAS"; fi
 
-### === STEP 5: Execute Mode ===
-case "$MODE" in
-  test)
-    echo "→ Running Apex tests on $ORG"
-    sfdx force:apex:test:run \
-      --targetusername "$ORG" \
-      --codecoverage \
-      --resultformat human \
-      --outputdir test-results \
-      --wait 10 \
-      --synchronous \
-      --loglevel DEBUG
-    ;;
-  validate)
-    echo "→ Validating deployment on $ORG"
-    sfdx force:source:deploy \
-      --targetusername "$ORG" \
-      --sourcepath "$SOURCE_PATH" \
-      --testlevel RunLocalTests \
-      --checkonly \
-      --wait 10 \
-      --verbose \
-      --loglevel DEBUG
-    ;;
-  deploy)
-    echo "→ Deploying to $ORG (tests WILL run)"
-    sfdx force:source:deploy \
-      --targetusername "$ORG" \
-      --sourcepath "$SOURCE_PATH" \
-      --testlevel RunLocalTests \
-      --wait 10 \
-      --verbose \
-      --loglevel DEBUG
-    ;;
-  *)
-    echo "❌ Unknown mode: $MODE (use 'test', 'validate', or 'deploy')"
-    exit 1
-    ;;
-esac
+# ——— STEP: RETRY LOOP ———
+for attempt in $(seq 1 $MAX_RETRIES); do
+  echo "=== Attempt #$attempt of $MAX_RETRIES on $ENV ($MODE) ==="
 
-echo "✅ '$MODE' completed on $ORG"
+  abort_stuck_tests "$ORG"
+
+  if [[ "$MODE" == "validate" ]]; then
+    echo "→ Running validation in $ORG..."
+    if sfdx force:source:deploy -u "$ORG" -p "$SOURCE_PATH" \
+        -l RunLocalTests --checkonly --wait 10 --verbose; then
+      echo "✅ Validation succeeded!"
+      exit 0
+    fi
+
+  elif [[ "$MODE" == "deploy" ]]; then
+    echo "→ Running full deploy in $ORG..."
+    if sfdx force:source:deploy -u "$ORG" -p "$SOURCE_PATH" \
+        -l RunLocalTests --wait 10 --verbose; then
+      echo "🎉 Deploy succeeded!"
+      exit 0
+    fi
+
+  else
+    echo "❌ Unknown mode: $MODE (use validate or deploy)"
+    exit 2
+  fi
+
+  echo "⚠ $MODE failed. Checking if retryable..."
+  abort_stuck_tests "$ORG"
+  sleep $((attempt * 5))  # exponential backoff
+done
+
+echo "❌ All $MAX_RETRIES attempts failed in $ENV ($MODE)."
+exit 1
