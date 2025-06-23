@@ -1,5 +1,5 @@
 public with sharing class QuickBooksService {
-    private static final String COMPANY_ID = '1234567890';
+    private static final String COMPANY_ID = '9341454816381446';
     private static String baseUrl(String path) {
         return '/v3/company/' + COMPANY_ID + path;
     }

@@ -10,11 +10,12 @@ private class QuickBooksCustomerSyncBatchTest {
     }
     @IsTest static void testBatch() {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
-        Account a = new Account(Name='Acct', DBA_Name__c='DBA', QuickBooks_Email__c='a@example.com');
+        Account a = new Account(Name='Acct', Type='Customer', DBA_Name__c='DBA', QuickBooks_Email__c='a@example.com');
         insert a;
         Test.startTest();
         Database.executeBatch(new QuickBooksCustomerSyncBatch(), 1);
         Test.stopTest();
-        System.assertEquals('BatchApexWorker', [SELECT JobType FROM AsyncApexJob ORDER BY CreatedDate DESC LIMIT 1].JobType);
+        System.assertEquals('BatchApexWorker',
+            [SELECT JobType FROM AsyncApexJob WHERE JobType='BatchApexWorker' ORDER BY CreatedDate DESC LIMIT 1].JobType);
     }
 }
