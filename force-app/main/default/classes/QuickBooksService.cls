@@ -45,7 +45,7 @@ public with sharing class QuickBooksService {
         QuickBooksApi.send(method, resource, body);
     }
 
-    public static void createInvoiceLines(List<rtms__CustomerInvoiceAccessorial__c> lines, String qboInvoiceId) {
+    public static void createInvoiceLines(List<rtms__CustomerInvoiceAccessorial__c> lines, String qboInvoiceId, String syncToken) {
         String resource = baseUrl('/invoice');
         List<Object> payloadLines = new List<Object>();
         for (rtms__CustomerInvoiceAccessorial__c line : lines) {
@@ -62,9 +62,11 @@ public with sharing class QuickBooksService {
         }
         Map<String,Object> body = new Map<String,Object>{
             'Id' => qboInvoiceId,
+            'SyncToken' => syncToken,
+            'sparse' => true,
             'Line' => payloadLines
         };
-        QuickBooksApi.send('POST', resource, body);
+        QuickBooksApi.send('PATCH', resource, body);
     }
 
     public static void createPayment(rtms__CustomerPayment__c pay, String qbCustomerId, String qbInvoiceId) {
