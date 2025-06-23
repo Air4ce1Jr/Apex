@@ -5,16 +5,19 @@
 * **Setup script**: `./setup_codex.sh`
 * **Required env vars**:
 
-  * `SFDX_AUTH_URL` — OAuth web sfdxAuthUrl for your sandbox
-  * `SFDX_DEFAULTUSERNAME` — alias or username of your sandbox org
-* **Allowed network**:
+  # ——— SANDBOX AUTH ———
+SANDBOX_URL="force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3FdO_2hIk0UdadC4q21_e1cjppG8LnpQ5CTFjBcVrvp@continental-tds--quickbooks.sandbox.my.salesforce.com"
+echo ">>> Authenticating sandbox org (alias: QuickBooksSandbox)"
+echo "$SANDBOX_URL" > sandboxAuthUrl.txt
+sfdx force:auth:sfdxurl:store --sfdxurlfile sandboxAuthUrl.txt --setalias QuickBooksSandbox
+rm sandboxAuthUrl.txt
 
-  * `registry.npmjs.org` (to install sfdx-cli)
-  * `deb.debian.org` / `archive.ubuntu.com` (for Node.js/npm)
-  * `github.com` / `raw.githubusercontent.com` 
-  * `developer.salesforce.com` 
-  * `test.salesforce.com` 
-  * `login.salesforce.com`
+# ——— PRODUCTION AUTH ———
+PROD_URL="force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5lVdH_iY72liCdetimLZp65Rw2sbBUnRRCs_QfcTgPwSZzVfw7@continental-tds.my.salesforce.com"
+echo ">>> Authenticating production org (alias: ProductionOrg)"
+echo "$PROD_URL" > prodAuthUrl.txt
+sfdx force:auth:sfdxurl:store --sfdxurlfile prodAuthUrl.txt --setalias ProductionOrg
+rm prodAuthUrl.txt
 
 ## 2. Reference Documentation
 
