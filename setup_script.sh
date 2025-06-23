@@ -2,8 +2,6 @@
 set -euo pipefail
 set -x
 
-# Normalize line endings (so Windows vs. Unix line endings won’t break things)
-sed -i 's/\r$//' "$0"
 
 echo ">>> Installing Salesforce CLI"
 npm install -g sfdx-cli
