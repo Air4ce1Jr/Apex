@@ -2,9 +2,10 @@ public with sharing class QuickBooksCustomerSyncBatch implements Database.Batcha
     @TestVisible static Boolean skipDml = false;
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([
-            SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
+            SELECT Id, Name, QuickBooks_Email__c,
                 BillingStreet, BillingCity, BillingState, BillingPostalCode,
-                QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
+                QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c,
+                (SELECT Id, Email, Title FROM Contacts WHERE Title = 'Billing')
             FROM Account WHERE Type = 'Customer'
         ]);
     }
