@@ -10,7 +10,7 @@ public with sharing class QuickBooksSyncJob implements Queueable, Database.Allow
     public void execute(QueueableContext context) {
         if (sObjectType == 'Account') {
             List<Account> updates = new List<Account>();
-            for (Account acct : [SELECT Id, DBA_Name__c, QuickBooks_Email__c,
+            for (Account acct : [SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
                     BillingStreet, BillingCity, BillingState, BillingPostalCode,
                     QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
                 FROM Account WHERE Id IN :recordIds]) {

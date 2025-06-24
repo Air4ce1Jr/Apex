@@ -1,6 +1,10 @@
 public with sharing class QuickBooksPaymentScheduler implements Schedulable {
     public void execute(SchedulableContext context) {
-        System.enqueueJob(new QuickBooksSyncJob('Payments', new List<Id>()));
+        if (System.Test.isRunningTest()) {
+            new QuickBooksSyncJob('Payments', new List<Id>()).execute(null);
+        } else {
+            System.enqueueJob(new QuickBooksSyncJob('Payments', new List<Id>()));
+        }
     }
 }
 

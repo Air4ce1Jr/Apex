@@ -1,4 +1,4 @@
-@IsTest
+@IsTest(isParallel=false)
 private class QuickBooksServiceTest {
     class Mock implements HttpCalloutMock {
         public HTTPResponse respond(HTTPRequest req) {
@@ -13,6 +13,16 @@ private class QuickBooksServiceTest {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
         Account acct = new Account(Name='a', DBA_Name__c='DBA', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606', QuickBooks_Email__c='a@example.com');
+        System.Test.startTest();
+        QuickBooksService.CustomerResult result = QuickBooksService.createOrUpdateCustomer(acct);
+        System.Test.stopTest();
+        System.assertEquals('99', result.id);
+    }
+
+    @IsTest static void testCreateCustomerWithNameFallback() {
+        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        QuickBooksTriggerUtil.skipAsync = true;
+        Account acct = new Account(Name='OnlyName', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606', QuickBooks_Email__c='n@example.com');
         System.Test.startTest();
         QuickBooksService.CustomerResult result = QuickBooksService.createOrUpdateCustomer(acct);
         System.Test.stopTest();
@@ -47,7 +57,6 @@ private class QuickBooksServiceTest {
 
     @IsTest static void testUpdateCustomerAndInvoice() {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
- j734av-codex/fix-missing-fields-in-quickbooks-api-payload
         QuickBooksTriggerUtil.skipAsync = true;
         rtms__Load__c load = new rtms__Load__c(Name='L3', rtms__Total_Weight__c=1);
         Account acct = new Account(Name='B', DBA_Name__c='DBA', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606', QuickBooks_Email__c='b@example.com',
@@ -60,7 +69,5 @@ private class QuickBooksServiceTest {
         QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
         System.Test.stopTest();
         System.assertEquals('99', res.id);
-
- main
     }
 }

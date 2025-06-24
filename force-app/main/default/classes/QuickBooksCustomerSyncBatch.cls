@@ -1,7 +1,8 @@
 public with sharing class QuickBooksCustomerSyncBatch implements Database.Batchable<SObject>, Database.AllowsCallouts {
+    @TestVisible static Boolean skipDml = false;
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([
-            SELECT Id, DBA_Name__c, QuickBooks_Email__c,
+            SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
                 BillingStreet, BillingCity, BillingState, BillingPostalCode,
                 QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
             FROM Account WHERE Type = 'Customer'
@@ -23,7 +24,7 @@ public with sharing class QuickBooksCustomerSyncBatch implements Database.Batcha
             }
             if (changed) updates.add(upd);
         }
-        if (!updates.isEmpty()) {
+        if (!updates.isEmpty() && !skipDml) {
             update updates;
         }
     }
