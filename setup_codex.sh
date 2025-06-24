@@ -41,7 +41,7 @@ sfdx force:auth:sfdxurl:store -f prod.txt -a "$PROD_ALIAS"
 rm prod.txt
 
 echo "✅ Connected orgs:"
-sfdx org list --all
+sfdx force:org:list --all
 
 # ——— PREP: SELECT ORG ———
 if [[ "$ENV" == "production" ]]; then ORG="$PROD_ALIAS"; else ORG="$SANDBOX_ALIAS"; fi

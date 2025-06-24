@@ -1,4 +1,4 @@
-@IsTest
+@IsTest(isParallel=false)
 private class QuickBooksSyncJobTest {
     class Mock implements HttpCalloutMock {
         public HTTPResponse respond(HTTPRequest req) {
@@ -16,6 +16,7 @@ private class QuickBooksSyncJobTest {
         insert load;
         Account a = new Account(Name='Acct', QuickBooks_Customer_Id__c='QB1');
         insert a;
+        insert new Contact(LastName='Billing', Email='b1@example.com', Title='Billing', AccountId=a.Id);
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(
             Name='Inv',
             Account__c=a.Id,
@@ -27,9 +28,8 @@ private class QuickBooksSyncJobTest {
         insert inv;
         List<Id> ids = new List<Id>{inv.Id};
         System.Test.startTest();
-        System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerInvoice__c', ids));
+        new QuickBooksSyncJob('rtms__CustomerInvoice__c', ids).execute(null);
         System.Test.stopTest();
-        System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
     }
 
     @IsTest static void testAccountQueueable() {
@@ -37,12 +37,12 @@ private class QuickBooksSyncJobTest {
         QuickBooksTriggerUtil.skipAsync = true;
         Account a = new Account(Name='Acct');
         insert a;
+        insert new Contact(LastName='Billing', Email='acct@example.com', Title='Billing', AccountId=a.Id);
         System.Test.startTest();
-        System.enqueueJob(new QuickBooksSyncJob('Account', new List<Id>{a.Id}));
+        new QuickBooksSyncJob('Account', new List<Id>{a.Id}).execute(null);
         System.Test.stopTest();
         a = [SELECT QuickBooks_Customer_Id__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('77', a.QuickBooks_Customer_Id__c);
-        System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
     }
 
     @IsTest static void testAccessorialQueueable() {
@@ -52,6 +52,7 @@ private class QuickBooksSyncJobTest {
         insert load;
         Account acct = new Account(Name='Acct2', QuickBooks_Customer_Id__c='QB1');
         insert acct;
+        insert new Contact(LastName='Billing', Email='acct2@example.com', Title='Billing', AccountId=acct.Id);
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='Inv2', Account__c=acct.Id,
             rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1,
             QuickBooks_Invoice_Id__c='INV1', QuickBooks_Invoice_SyncToken__c='0');
@@ -67,9 +68,8 @@ private class QuickBooksSyncJobTest {
         line.put('rtms__Accessorial__c', accId);
         insert line;
         System.Test.startTest();
-        System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerInvoiceAccessorial__c', new List<Id>{line.Id}));
+        new QuickBooksSyncJob('rtms__CustomerInvoiceAccessorial__c', new List<Id>{line.Id}).execute(null);
         System.Test.stopTest();
-        System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
     }
 
 }

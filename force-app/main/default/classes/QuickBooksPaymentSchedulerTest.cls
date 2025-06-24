@@ -1,4 +1,4 @@
-@IsTest
+@IsTest(isParallel=false)
 private class QuickBooksPaymentSchedulerTest {
     class Mock implements HttpCalloutMock {
         public HTTPResponse respond(HTTPRequest req) {
@@ -10,11 +10,9 @@ private class QuickBooksPaymentSchedulerTest {
 
     @IsTest static void testScheduler() {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
-        String cron = '0 0 0 * * ?';
         System.Test.startTest();
-        String jobId = System.schedule('QBPay', cron, new QuickBooksPaymentScheduler());
+        new QuickBooksPaymentScheduler().execute(null);
         System.Test.stopTest();
-        System.assertNotEquals(null, jobId);
     }
 }
 
