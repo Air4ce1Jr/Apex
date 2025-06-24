@@ -19,7 +19,11 @@ private class QuickBooksCustomerSyncBatchTest {
         Account a = new Account(Name='Acct', Type='Customer', DBA_Name__c='DBA', QuickBooks_Email__c='a@example.com');
         insert a;
         System.Test.startTest();
+ bo2hti-codex/test-and-deploy-quickbooks-salesforce-sync
         new QuickBooksCustomerSyncBatch().execute(new Ctx(), new List<Account>{a});
+
+        Database.executeBatch(new QuickBooksCustomerSyncBatch(), 1);
+ main
         System.Test.stopTest();
         a = [SELECT QuickBooks_Customer_Id__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('55', a.QuickBooks_Customer_Id__c);
