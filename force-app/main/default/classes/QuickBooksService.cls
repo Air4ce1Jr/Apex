@@ -14,7 +14,7 @@ public with sharing class QuickBooksService {
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/customer');
         Map<String,Object> body = new Map<String,Object>{
-            'DisplayName' => acct.DBA_Name__c,
+            'DisplayName' => String.isNotBlank(acct.DBA_Name__c) ? acct.DBA_Name__c : acct.Name,
             'PrimaryEmailAddr' => new Map<String,Object>{'Address'=>acct.QuickBooks_Email__c},
             'BillAddr' => new Map<String,Object>{
                 'Line1'=>acct.BillingStreet,
