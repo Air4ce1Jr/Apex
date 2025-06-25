@@ -2,6 +2,11 @@
 set -euo pipefail
 set -x
 
+# ——— QUICKBOOKS CREDENTIALS ———
+# ⚠️ These are now hard-coded; consider the security implications!
+QBO_CLIENT_ID="ABMfKDQ3CPWeXA9byYwd4lV78WefshtTuwFnLrhtSqxQymeOOo"
+QBO_CLIENT_SECRET="urtCni09oxfUiDNAx5j1p5nzI21JzfJRTzZAX1yN"
+
 # ——— CONFIG ———
 SANDBOX_ALIAS="QuickBooksSandbox"
 PROD_ALIAS="ProductionOrg"
@@ -29,7 +34,7 @@ abort_stuck_tests() {
   done
 }
 
-# ——— AUTH ———
+# ——— AUTH TO SALESFORCE ORGS ———
 echo "🔐 Authenticating sandbox..."
 echo "$SANDBOX_URL" > sb.txt
 sfdx force:auth:sfdxurl:store -f sb.txt -a "$SANDBOX_ALIAS"
@@ -45,6 +50,17 @@ sfdx force:org:list --all
 
 # ——— PREP: SELECT ORG ———
 if [[ "$ENV" == "production" ]]; then ORG="$PROD_ALIAS"; else ORG="$SANDBOX_ALIAS"; fi
+
+# ——— OPTIONAL: QUICKBOOKS SANDBOX TOKEN REQUEST ———
+# Example: exchange auth code for tokens using curl
+# (only run this once you have your OAuth authorization code)
+# QB_AUTH_CODE="put-your-authorization-code-here"
+# curl -X POST https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer \
+#   -H "Accept: application/json" \
+#   -H "Content-Type: application/x-www-form-urlencoded" \
+#   -u "$QBO_CLIENT_ID:$QBO_CLIENT_SECRET" \
+#   -d "grant_type=authorization_code&code=$QB_AUTH_CODE&redirect_uri=https://your.redirect.uri" \
+#   | jq .
 
 # ——— STEP: RETRY LOOP ———
 for attempt in $(seq 1 $MAX_RETRIES); do
