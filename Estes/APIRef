@@ -1,0 +1,233 @@
+Great. I’ll compile a complete outline of all documentation sections, sample requests/responses, and code examples from the Estes Express Developer Portal. This will include areas such as API Key, Authentication, BOL, Pickup, Shipment Tracking, Images, Components, Examples, Data Definitions, and Geo Location.
+
+I’ll organize everything in a structured, GitHub-ready format so you can upload it directly.
+
+I’ll let you know once it’s ready for your review.
+
+
+# Estes Express Developer Portal – Documentation Outline
+
+## API Key
+
+* **Purpose:** Manage API keys for authenticating API consumers.
+* **Endpoints:**
+
+  * **POST `/v1/api-key`** – Create a new API key for a client (supply Client ID and Secret via Basic Auth). Returns a JSON containing the generated `apiKey`, along with the client’s ID and a new client Secret.
+  * **GET `/v1/api-key`** – Retrieve the currently active API key for the authenticated client. Requires Basic Auth with Client ID and Secret. Returns a JSON with the stored `apiKey` if one exists.
+  * **DELETE `/v1/api-key`** – Delete the existing API key. Requires Basic Auth. A successful deletion returns HTTP 204 (No Content).
+* **Notes:** After generating an API key, a **new Client Secret** is provided which must be used for future retrieval or deletion of the key. Only one API key is active per environment (test or production) – attempting to create a second key will result in a 409 Conflict error.
+* **Examples:** The portal provides example cURL commands for each operation in both production and test environments (e.g. POST to `https://cloudapi.estes-express.com/v1/api-key` to generate a key), along with sample responses. A successful POST returns a JSON `data` object with the new `apiKey` and credentials, while GET returns the `apiKey` if it exists.
+
+## Authentication
+
+* **Purpose:** Obtain a Bearer token using API key and user credentials, for authenticating subsequent API calls.
+* **Endpoint:**
+
+  * **POST `/authenticate`** – Exchange valid credentials for a Bearer access token. The request uses Basic Auth (MyEstes **username** and **password**) and requires an `apikey` header (the API Key). On success, returns HTTP 200 with a JSON containing an access `token` (JWT Bearer token).
+* **Usage:** Include the returned Bearer token in the `Authorization` header (as `Bearer {token}`) for all subsequent API requests, along with the `apikey` header. The token is time-limited (`expires_in` is provided in the token response). Each token is tied to the MyEstes user credentials used; TMS providers must obtain separate tokens per customer and should **not share tokens** across different user accounts.
+* **Example:** cURL (Production):
+
+  ```bash
+  curl -X POST "https://cloudapi.estes-express.com/authenticate" \
+       -H "accept: application/json" \
+       -H "apikey: {YOUR_API_KEY}" \
+       -u MyEstesUsername:MyEstesPassword
+  ```
+
+  **Response:** `{ "access_token": "<JWT_token_string>", "token_type": "Bearer", "expires_in": 35999 }`.
+
+## BOL (Bill of Lading API)
+
+* **Purpose:** Create electronic Bills of Lading (eBOL) in compliance with the NMFTA Digital LTL Council’s standard (version 2.0.1).
+* **Endpoint:**
+
+  * **POST `/v1/bol`** – Submit a new Bill of Lading request. Requires an `Authorization: Bearer {token}` header (from Authentication) and the `apikey` header.
+* **Request Body:** JSON object with all required BOL data:
+
+  * Top-level required fields include **`bol`**, **`version`**, **`commodities`**, **`payment`**, **`request`**, **`transit`**, **`origin`**, **`destination`**, and **`billTo`**. Each of these is an object containing the detailed eBOL information as per the standard. For example:
+
+    * `bol` – contains metadata like `function` (e.g. "Create"), `requestedPickupDate`, `isTest` flag, `requestorRole` (Shipper, Consignee, Third Party).
+    * `origin`, `destination`, `billTo` – addresses and contact information for shipment parties.
+    * `commodities` – list of commodity items (NMFC codes, weights, package types, hazmat info if applicable, etc.).
+    * `payment` – billing terms, third-party payer details if any.
+    * `transit` – service options or transit-level data.
+    * `version` – specifies the eBOL schema version (e.g. `"v2.0.1"`).
+  * Optional flags: an `images` object can be included to request auto-generated documents. For example, `images.includeBol: true` will return a Base64-encoded BOL PDF in the response, and `images.includeShippingLabels: true` can generate shipping labels (with options for label `format`, `quantity`, etc.).
+* **Response:** On success (HTTP 201 Created), returns a JSON structure with the newly created BOL details. If image flags were set, the response will include `data` containing Base64 strings or URLs for the BOL PDF and labels. Errors are returned in an `error` object with `code`, `message`, and `details`.
+* **Example:** *The Developer Portal documentation provides the full schema and example values for each field but does not include a complete sample request/response in the Examples section.* The request schema shows sample values (e.g. `function: "Create"`, `requestedPickupDate: "2022-11-20T00:00:00.000Z"`). A typical usage would involve sending a properly formatted JSON as described above.
+
+## Pickup (Pickup Request API)
+
+* **Purpose:** Create and manage freight pickup requests (including scheduling, updating, cancelling pickups) and retrieve pickup status.
+* **Endpoints:**
+
+  * **POST `/v1/pickup-requests`** – Create a new pickup request. Requires Bearer token and API key headers. The body is a JSON with pickup details (see *Request Details* below). A successful creation returns a unique `requestNumber` identifying the pickup.
+  * **PUT `/v1/pickup-requests`** – Update an existing pickup request. The JSON body must include the `requestNumber` of the pickup to modify, along with any fields to change (e.g. pickup date/time, pieces, weight, contacts, reference numbers). Only certain fields can be updated (date, pieces, weight, contacts, reference IDs, etc.). Returns the updated pickup details on success.
+  * **GET `/v1/pickup-requests/{requestNumber}`** – Retrieve the status and details of a specific pickup request. The `{requestNumber}` is the ID obtained from creation. Returns a JSON with all information about the pickup, including current status and history.
+  * **DELETE `/v1/pickup-requests/{requestNumber}`** – Cancel an existing pickup request (if it has not been completed). Passing the pickup’s request number will delete the scheduled pickup. Returns a confirmation or an error if the pickup cannot be canceled (e.g. not found or already in progress).
+* **Request Details:** For create/update, the JSON payload includes:
+
+  * **Shipper** information: `shipperName`, `accountCode` (Estes account number, if known), `shipperAddress` (with `addressInfo` sub-fields like street, city, state, ZIP, country), and `shipperContacts` (contact list with name, email, phone, etc.).
+  * **Pickup specifics:** `requestAction` (type of pickup – e.g. *LL* for Live Load, *HE* for Hook Empty, etc.), `paymentTerms` (PPD or COL), `pickupDate`, `pickupStartTime` and `pickupEndTime` (window for pickup, in HHMM 24-hr format).
+  * **Freight details:** `totalPieces`, `totalWeight`, `totalHandlingUnits`, and `hazmatFlag` (if hazardous materials are present). An `expeditedCode` can indicate priority (e.g. Guaranteed or Hot shipment codes).
+  * **Trailer request:** optional `trailer` array to request equipment drop-off (each with `id`, `length`, `type` if a trailer is needed).
+  * **Reference numbers:** optional `referenceNumbers` array for any associated references (PO, BOL, PRO, etc.) related to this pickup. Each reference has a `type` code (see Data Definitions for full list, e.g. *BOL*, *PO*, *SNO*, etc.) and a value.
+* **Response Details:** The **GET pickup status** returns an array (within `data`) of pickup request objects (usually just one) with details including:
+
+  * `requestNumber`, `status` (with sub-fields `conciseStatus` and `expandedStatus` describing the pickup state, e.g. “Pickup Complete” or specific exception reasons), and `statusHistory` (chronological list of status updates).
+  * Shipper info, `requestAction`, `paymentTerms`, totals (pieces/weight/handling units), `hazmatFlag`, `expeditedCode`, and `whoRequested` (party who scheduled the pickup).
+  * `userName` and `userAccount` (the MyEstes user who created the request).
+* **Examples:** The Developer Portal provides step-by-step examples:
+
+  * *Example 1:* Creating a pickup – shows a full cURL POST with a JSON body (as described above) and a sample response containing the new `requestNumber`.
+  * *Example 2:* Updating a pickup – cURL PUT with JSON (including `requestNumber` and updated fields like new date or contact info).
+  * *Example 3:* Canceling a pickup – cURL DELETE to the pickup endpoint (with `requestNumber` in URL).
+  * *Example 4:* Getting pickup status – cURL GET to `/pickup-requests/{requestNumber}` and a sample JSON response with status details. (The response example shows status codes and history for the pickup request.)
+
+## Shipment Tracking
+
+* **Purpose:** Retrieve tracking status and movement history for shipments by PRO or reference numbers. Provides real-time status updates, estimated delivery, and historical tracking events.
+* **Endpoint:**
+
+  * **GET `/v1/shipments/history`** – Get full tracking history for a shipment. This single endpoint accepts various query parameters to look up by different reference types. **At least one** of the following query parameters must be provided:
+
+    * `pro` – PRO tracking number (Estes 10-digit freight bill number).
+    * `bol` – Bill of Lading number.
+    * `po` – Purchase Order number.
+    * `pur` – Pickup Request number.
+    * `ldn` – Load Number.
+    * `exl` – Estes Express unique ID (EXLA-ID).
+    * `interline-pro` – Interline PRO number (for interline carrier shipments).
+    * Optional: `party-to` – boolean flag; if `true`, limits results to shipments your account is a party to (when searching by references like BOL, PO, etc.).
+* **Response:** HTTP 200 returns a JSON with an array of shipment records (`data` array) matching the query. Each shipment object includes comprehensive tracking details:
+
+  * **Reference info:** `pro` number, and a `documentReference` list of related document IDs and types (e.g. additional BOL or PO numbers linked to the shipment). Also `pickupRequestNumber` if the shipment originated from a pickup request.
+  * **Shipment dates:** `pickupDate` and `pickupTime`, and if delivered, `deliveryDate` and `deliveryTime`.
+  * **Status:** A nested `status` object with current `conciseStatus` (e.g. *Out for Delivery*, *Delivered*) and `expandedStatus` (detailed description), along with `referenceDate`/`referenceTime` of that status and any `reasonCode` and `reason` (especially if an exception). A boolean `isException` indicates if the current status is an exception condition.
+  * **Movement details:** `estimatedDelivery` object providing an estimated delivery date/time range if available (dynamic ETA), and `transitDays` (scheduled transit time).
+  * **Last-mile info:** `driverInfo` – if out for delivery, includes the driver’s name, current GPS coordinates (`geoCoordinates` array of \[longitude, latitude]), and `stopsAway` (how many stops away the driver is).
+  * **Appointment info:** `appointment` – if an appointment delivery is set, shows status and scheduled time window; `appointmentHistory` provides any changes or history of appointments.
+  * **Shipment parties:** `consigneeParty`, `shipperParty`, `thirdParty` – with account numbers, names, addresses, etc. for each relevant party.
+  * **Pieces/Weight:** `piecesCount` and `totalWeight` of the shipment.
+  * **Charges:** `freightCharges` and `terms` (payment terms) if the requesting account is authorized to view financials (otherwise these may be redacted).
+  * **Movement History:** A detailed list of tracking events (`movementHistory`) may be included, each with location, timestamp and status info for each milestone in transit (e.g. departed terminal, arrived at hub, out for delivery, etc.).
+* **Security:** Requires a valid Bearer token and API key. If the user is not authorized for a shipment (not a payer or party to the shipment), the API will return either a redacted dataset or a 403/404 indicating no data found.
+* **Example:** *Example 5* in the portal shows a GET request with a PRO number and the returned JSON structure. The sample response includes an array with a shipment’s data and demonstrates fields like `documentReference` (showing linked BOL, PO, etc.), status with reason codes, `driverInfo` coordinates, and more.
+
+## Images
+
+* **Purpose:** Retrieve document images (PODs, BOLs, receipts, etc.) related to a shipment by PRO number. Allows fetching various document types either as URLs or Base64 data.
+* **Endpoint:**
+
+  * **GET `/v1/search/images/{document-type}`** – Fetch images of a specified type for a given PRO number. The `{document-type}` path parameter selects the category of document (see list of types below). A **`pro`** query parameter is **required** (the PRO tracking number for the shipment in question). Optional query params:
+
+    * `include-image` (boolean) – if `true`, the response will include the Base64-encoded image data for the latest version of the document. If not provided or false, you may get just URLs.
+    * `all-versions` (boolean) – if `true`, returns all versions of the document; if `false`, only the latest version is considered.
+* **Supported Document Types:** *(Not case sensitive)* The path value `{document-type}` can be one of:
+
+  * `BOL` – Bill of Lading
+  * `bolsup` – BOL Supplemental documents
+  * `dr` – Delivery Receipt
+  * `delimg` – Delivery Image (photo of delivered freight)
+  * `aptcnf` – Appointment Confirmation
+  * `puimg` – Pickup Image (photo from pickup)
+  * `LOA` – Letter of Authorization
+  * `CCI` – Canadian Customs Invoice
+  * `b7512` – U.S. Customs Bond form 7512
+  * `camoth` – California Moth Certificate
+  * `lumper` – Lumper Receipt
+  * `tcsupp` – Time Critical Supplement
+  * `wnr` – Weight & Research Inspection Certificate
+  * `wr` – Weight & Research Image
+    *(Each document type has an associated authorization requirement: some are available only if your account is party to the shipment or the payer on the shipment.)*
+* **Response:** On success (HTTP 200), returns a JSON with a `data` array. Each element in the array represents one document image found, with fields:
+
+  * `url` – a link to the image file (if available).
+  * `documentType` – e.g. “BOL”, “DR”, etc..
+  * `contentType` – MIME type of the image (typically `"image/tiff"` for scans).
+  * `data` – Base64 string of the image file (included only if `include-image=true` was requested).
+  * Timestamps: `createdDate` & `createdTime` (legacy fields, to be deprecated) and a combined `createdDateTime` (ISO date-time when the image was created in the system).
+  * If no image is found for that PRO and type, the response will have an empty data array.
+* **Error Handling:** Common error codes include 400 for missing/invalid PRO or document type, 403 if not authorized to view that document, 404 if not found, 406 if unacceptable format, etc., each returning an empty data set or no body.
+* **Example Usage:** To retrieve a Delivery Receipt image for PRO 1234567890, one would GET `/v1/search/images/dr?pro=1234567890&include-image=true`. The response would include the `url` to the DR image and a Base64 `data` string of the image. *(The Developer Portal’s Examples section does not list a specific numbered example for the Images API, but the documentation above provides the guidance and an example JSON fragment.)*
+
+## Components
+
+* **Purpose:** Define re-usable components and security schemes used by the APIs (as per OpenAPI specification components).
+* **Security Schemes:**
+
+  * **BasicAuth** – HTTP Basic authentication scheme, used for `/authenticate` (MyEstes username/password) and for API key generation (Client ID/Secret).
+  * **ApiKeyAuth** – API key authentication passed in headers. The API key is sent in a header named `apikey` for all Estes REST API calls.
+  * **BearerAuth** – HTTP Bearer token scheme (JWT). The bearer token is obtained from the Authentication API and must be included in the `Authorization: Bearer ...` header for protected endpoints (BOL, Pickup, Tracking, Images).
+* **Other Components:** *(If any common request/response schemas or data models are defined, they would be listed here. In this portal, the “Components” section is primarily focused on authentication methods.)* Each API’s request and response schemas are detailed in their respective sections rather than as separate component models.
+
+## Examples
+
+* **Overview:** The Developer Portal provides a dedicated **Examples** section illustrating common use cases with cURL requests and corresponding JSON responses. These examples demonstrate how to format requests and what to expect in responses for various APIs. All examples assume you have a valid API key and a Bearer token. The examples are numbered and include:
+
+  1. **Create a Pickup Request** – Shows a `POST /v1/pickup-requests` with a full JSON payload (shipper info, pickup details, commodities, references, etc.). The example response returns a new `requestNumber` and confirms the pickup data.
+  2. **Update a Pickup Request** – Example of `PUT /v1/pickup-requests` to modify an existing request (changing date, pieces, weight, contacts, or reference IDs). Illustrates sending the pickup’s `requestNumber` and updated fields in the JSON, and shows the updated pickup details in the response.
+  3. **Cancel a Pickup Request** – Example using `DELETE /v1/pickup-requests/{requestNumber}` to cancel a scheduled pickup. Simply requires the pickup’s reference number in the URL. The example highlights that no body is needed, and a successful cancellation yields a confirmation (HTTP 204).
+  4. **Get Pickup Status** – Example `GET /v1/pickup-requests/{requestNumber}` to retrieve status info. The example response includes the pickup’s status and history (showing statuses like “Pickup Accepted”, “Driver Enroute”, etc., and any exception codes).
+  5. **Get Shipment Tracking History** – Example of `GET /v1/shipments/history` with a PRO number query. The example response is a detailed shipment tracking record (as described in the Shipment Tracking section), showing movement history, current status, driver info (with GPS coordinates), appointment info, and related reference numbers.
+* Each example is presented with the **CURL request** (method, URL, headers, and sample body if applicable) followed by a **formatted JSON response**. This helps developers understand how to structure their API calls and parse the results. *(No separate examples were explicitly given for BOL or Images in the examples section, implying those are expected to be straightforward given the documentation above or are possibly covered in separate documentation.)*
+
+## Data Definitions
+
+* **Purpose:** Provide detailed descriptions of data fields and enumerations used across the Estes APIs. The Data Definitions section is organized by API object or context, explaining the meaning and allowed values of fields that appear in requests or responses. Key subsections include:
+
+  * **Pickup Fields:** Definitions of fields in Pickup Request APIs (as seen in create/update payloads and status responses). For example:
+
+    * `requestNumber` – The unique identifier for a pickup request, assigned by Estes when the request is created.
+    * `reconciledPros` – List of PRO numbers linked to the pickup (if freight has been picked up and PROs assigned). Explains that absence of a PRO here doesn’t necessarily mean no pickup occurred, just that reconciliation may be pending.
+    * `status` – A composite object describing the pickup status. It includes: **conciseStatus** (milestone-level status such as *Pickup Accepted*, *Driver Arrived*, *Pickup Complete*, etc.) and **expandedStatus** (a more detailed phrase). Definitions list possible status text for dispatcher rejections or no-service reasons as well. Also `referenceDate`/`referenceTime` (when the status was recorded), `reasonCode` and `reason` (providing code and text for certain statuses, like why a pickup was rescheduled or not serviced).
+    * `shipper` – Explains that either a shipper address or accountCode must be provided, and if both are given, the account code overrides the address info. Subfields like **name**, **address** (with components line, city, state, postalCode, country), and **contacts** (contact info with phone, email, etc.) are defined.
+    * `requestAction` – Code for the type of pickup action (LL, HL, HE, SE, AP, etc.), each defined (e.g. *LL – LTL live load \[default]*, *AP – Appointment required*, *HE – Hook empty trailer*, etc.).
+    * `paymentTerms` – Payment terms for resulting shipments (Collect or Prepaid).
+    * `hazmatFlag` – Indicates hazardous materials; additional hazmat details should be provided in commodities if ‘Y’.
+    * `expeditedCode` – Priority code for expedited service (E, G, H, or blank for normal) with meanings (e.g. G – Guaranteed, H – Hot shipment).
+    * `whoRequested` – Code for who initiated the pickup (Shipper, Consignee, Third Party, etc.).
+    * Many other fields are listed (userName, userAccount, thirdPartyName, consigneeName, etc.), providing context for what each represents in the pickup process.
+  * **Shipment Tracking Fields (Shipment History):** Definitions of fields returned by the tracking history API. Key fields include:
+
+    * `pro` – The PRO (tracking) number.
+    * `documentReference` – Array of associated document IDs (with `ID` and `documentType`, e.g. BOL, PON for purchase order, etc.).
+    * `pickupRequestNumber` – If the shipment was created from a pickup request, this links to that request.
+    * `expeditedCode` and `expeditedDescription` – Defines any expedited service level on the shipment. A list of possible codes (e.g. CGM1, GMS3, etc.) and their descriptions (like *Guaranteed by 5 PM*, *Guaranteed by 10 AM*, etc.) is provided.
+    * Booleans `isResidential` and `isTruckload` – indicate special service factors for the shipment.
+    * `status` – Similar in structure to pickup status: has concise and expanded status definitions for shipments (e.g. *In Transit*, *Out for Delivery*, *Delivered*), and expanded descriptions for each stage (e.g. “Shipment picked up”, “Arrived at Estes facility at XYZ”, “Out for delivery”, etc.). All major tracking event descriptions are enumerated for clarity on what each status means operationally.
+    * `reasonCode`/`reason` – If the status is an exception, these provide codes/text explaining issues (e.g. failed delivery attempt reasons).
+    * `isException` – True/False if the current status is considered an exception (a special table of exception status codes is provided – see below).
+    * `deliveryDate` & `deliveryTime` – Actual delivery timestamp (if delivered).
+    * `estimatedDelivery` – Object with `startDate`, `startTime`, `endDate`, `endTime` for projected delivery window.
+    * `driverInfo` – Contains `name` of driver, `geoCoordinates` (location of driver, \[longitude, latitude]), and `stopsAway` (approx. number of stops before delivery).
+    * `appointment` and `appointmentHistory` – If appointment delivery, similar structure as described in the tracking section (status and time window).
+    * `piecesCount`, `totalWeight` – Shipment details on quantity and weight.
+    * `cube` and `ratedCube` – Volume metrics for the shipment (actual vs billed cubic volume).
+    * `freightCharges` and `terms` – Financial info (if authorized to view).
+    * `consigneeParty`, `shipperParty`, `thirdParty` – Definitions of these party objects (account numbers, name, address subfields as in the tracking response). The definitions reiterate that each party contains address and reference numbers fields (with lists of all possible reference `type` codes for documents like AID, BOL, PO, etc., as shown above).
+    * `originTerminal` & `destinationTerminal` – Definitions for terminal objects (terminal number, name, address, contact info) that handled the freight at origin and will handle delivery.
+    * `interlineFrom` / `interlineTo` – If applicable, info about interline carriers involved (with their PRO and SCAC codes).
+    * `movementHistory` – A complex object encapsulating all the events (locations, timestamps, and status changes) that a shipment went through. It contains nested fields like location (with id, name, address), `transportEventTypeCode`, and a `statusHistory` which is an array of events (each with conciseStatus, expandedStatus, date, time, etc.). Essentially, this is the full timeline of the shipment’s journey.
+  * **Code Tables:** The Data Definitions section also provides reference tables for various code values:
+
+    * **Reschedule Reason Codes (Pickup)** – a table of two-letter codes (e.g. *CC*, *CR*, *NF*, etc.) and their meaning when a pickup is rescheduled (e.g. *CC – Pickup Rescheduled: Shipper Unavailable*, *NF – Freight Not Available*, *DE – Dispatcher Planning*).
+    * **Driver Delivery No Service Codes** – lists codes for delivery attempt outcomes and exceptions on the final leg (e.g. *HL – Customer Holiday*, *NR – No Receiving Personnel*, *UP – Awaiting Payment*, etc.), mapped to friendly descriptions.
+    * **Dispatcher Bring Back Reason Codes** – a comprehensive table of internal codes for why a delivery was not completed on the first attempt and freight was brought back (or delivery exceptions). This includes codes like *BK – Breakdown*, *DI – Given to Interline Partner*, *DR* codes for refused deliveries, *RS – Refused due to Shortage*, etc., each with an indicator if the shipment is delivered (Y/N) and a description (this aligns with what shows up in `reasonCode`/`reason` in tracking statuses).
+    * **Exception Status Table** – delineates which status codes are considered exceptions. It lists each status/reason code (like AGT, CO, DRS, RTS, etc.), marking if it’s an exception (T=true) and provides a friendly description. For example, *CO – Unable to Deliver - Will Attempt Tomorrow* is marked True (exception), whereas *OK – Delivery Completed - OK* is not an exception. This helps interpret the `isException` flag in tracking data.
+
+## Geo Location
+
+* **Description:** Explains how GPS data is incorporated into tracking updates for freight movement. **Geo Location (GPS)** data represents the physical coordinates of freight at key transit points. The availability of geo-location updates depends on the stage of transit: there are more frequent GPS updates when a shipment is out for delivery (with a driver) than when it’s moving between terminals in line haul. Data is collected via driver handheld devices and dispatch systems, and may be unavailable in certain conditions or locations (e.g. some meet points or if devices are offline).
+* **Geo-Tracking Events:** The portal provides a table indicating at which shipment milestones GPS coordinates are recorded. For example:
+
+  * **Origin Terminal for Pickup:** GPS captured at time of departure from origin terminal.
+  * **En Route Pickup (Stops Away):** When a driver is en route for pickup or delivery, GPS is updated at each stop (the “stops away” feature).
+  * **Pickup Location:** GPS recorded upon driver’s arrival at the pickup location.
+  * **Return to Origin Terminal:** GPS updated after leaving the pickup, once departing origin terminal into linehaul (initial pickup return).
+  * **Hubs / Line Haul:** For intermediate hubs, GPS data is generally available (especially if hubs are on the central dispatch network). Certain meet points might not have data if not instrumented.
+  * **Destination Terminal:** GPS available when arriving at destination terminal.
+  * **Out for Delivery (Stops Away):** GPS updates at each stop when the freight is out for delivery on a truck (the driver’s device provides location and how many stops remain).
+  * **Delivery Location:** GPS recorded at the delivery location upon arrival.
+* **Data Format:** Geo-coordinates are presented as an array of two strings: `["longitude", "latitude"]` (note the order is Lon/Lat). For instance, a JSON fragment in a tracking response might show `"geoCoordinates": [ "-72.900644", "41.547504" ]`. These coordinates correspond to the last known location of the truck or shipment at the time of the event.
+* **Usage:** Developers can use the geo-coordinates from the **Shipment Tracking** or **Pickup Status** responses (in fields like `driverInfo.geoCoordinates` or terminal information) to plot the shipment’s location on a map or to calculate distances. The portal’s note reminds that not every transit event will have GPS data (especially if a segment of the journey lacks tracking coverage), but critical customer-facing points (pickup, out-for-delivery, delivery) typically include coordinates when available.
