@@ -19,7 +19,7 @@ private class CustomerInvoiceTriggerTest {
             rtms__Invoice_Date__c=Date.today(),
             rtms__Invoice_Due_Date__c=Date.today().addDays(1),
             rtms__Invoice_Total__c=10,
-            rtms__Accounting_Status__c='Ready for Accounting'
+            rtms__Accounting_Status__c='Sent to Accounting'
         );
         System.Test.startTest();
         insert inv;
@@ -40,7 +40,7 @@ private class CustomerInvoiceTriggerTest {
             rtms__Accounting_Status__c='Ready for Accounting'
         );
         insert inv;
-        inv.rtms__Accounting_Status__c = 'Ready for Accounting';
+        inv.rtms__Accounting_Status__c = 'Sent to Accounting';
         System.Test.startTest();
         update inv;
         System.Test.stopTest();
