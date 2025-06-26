@@ -41,7 +41,7 @@ sfdx force:auth:sfdxurl:store -f prod.txt -a "$PROD_ALIAS"
 rm prod.txt
 
 echo "✅ Connected orgs:"
-sfdx org list --all
+sfdx force:org:list --all
 
 # ——— PREP: SELECT ORG ———
 if [[ "$ENV" == "production" ]]; then ORG="$PROD_ALIAS"; else ORG="$SANDBOX_ALIAS"; fi
@@ -54,16 +54,14 @@ for attempt in $(seq 1 $MAX_RETRIES); do
 
   if [[ "$MODE" == "validate" ]]; then
     echo "→ Running validation in $ORG..."
-    if sfdx force:source:deploy -u "$ORG" -p "$SOURCE_PATH" \
-        -l RunLocalTests --checkonly --wait 10 --verbose; then
+    if sfdx force:source:deploy -u "$ORG" -p "$SOURCE_PATH" --checkonly --testlevel RunLocalTests --wait 10 --verbose; then
       echo "✅ Validation succeeded!"
       exit 0
     fi
 
   elif [[ "$MODE" == "deploy" ]]; then
     echo "→ Running full deploy in $ORG..."
-    if sfdx force:source:deploy -u "$ORG" -p "$SOURCE_PATH" \
-        -l RunLocalTests --wait 10 --verbose; then
+    if sfdx force:source:deploy -u "$ORG" -p "$SOURCE_PATH" --testlevel RunLocalTests --wait 10 --verbose; then
       echo "🎉 Deploy succeeded!"
       exit 0
     fi

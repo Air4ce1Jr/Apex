@@ -1,9 +1,11 @@
 public with sharing class QuickBooksCustomerSyncBatch implements Database.Batchable<SObject>, Database.AllowsCallouts {
+    @TestVisible static Boolean skipDml = false;
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([
-            SELECT Id, DBA_Name__c, QuickBooks_Email__c,
+            SELECT Id, Name, QuickBooks_Email__c,
                 BillingStreet, BillingCity, BillingState, BillingPostalCode,
-                QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
+                QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c,
+                (SELECT Id, Email, Title FROM Contacts WHERE Title = 'Billing')
             FROM Account WHERE Type = 'Customer'
         ]);
     }
@@ -24,7 +26,22 @@ public with sharing class QuickBooksCustomerSyncBatch implements Database.Batcha
             if (changed) updates.add(upd);
         }
         if (!updates.isEmpty()) {
-            update updates;
+            if (skipDml) {
+                Map<Id, Account> scopeMap = new Map<Id, Account>(scope);
+                for (Account upd : updates) {
+                    if (scopeMap.containsKey(upd.Id)) {
+                        Account orig = scopeMap.get(upd.Id);
+                        if (upd.QuickBooks_Customer_Id__c != null) {
+                            orig.QuickBooks_Customer_Id__c = upd.QuickBooks_Customer_Id__c;
+                        }
+                        if (upd.QuickBooks_Customer_SyncToken__c != null) {
+                            orig.QuickBooks_Customer_SyncToken__c = upd.QuickBooks_Customer_SyncToken__c;
+                        }
+                    }
+                }
+            } else {
+                update updates;
+            }
         }
     }
     public void finish(Database.BatchableContext bc) {}

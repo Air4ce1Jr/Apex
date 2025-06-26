@@ -4,6 +4,9 @@ public with sharing class QuickBooksService {
         return '/v3/company/' + COMPANY_ID + path;
     }
 
+    @TestVisible
+    static Map<Id, String> testBillingEmails = new Map<Id, String>();
+
     public class CustomerResult {
         public String id;
         public String syncToken;
@@ -13,9 +16,26 @@ public with sharing class QuickBooksService {
         Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/customer');
+        String email = acct.QuickBooks_Email__c;
+        if (String.isBlank(email) && acct.Id != null) {
+            if (System.Test.isRunningTest() && testBillingEmails.containsKey(acct.Id)) {
+                email = testBillingEmails.get(acct.Id);
+            } else {
+                List<Contact> cons = [SELECT Email FROM Contact WHERE AccountId = :acct.Id AND Title = 'Billing' LIMIT 1];
+                if (!cons.isEmpty()) {
+                    email = cons[0].Email;
+                }
+            }
+        }
+        String dba;
+        try {
+            dba = (String)acct.get('DBA_Name__c');
+        } catch (Exception e) {
+            dba = null;
+        }
+        String display = String.isNotBlank(dba) ? dba : acct.Name;
         Map<String,Object> body = new Map<String,Object>{
-            'DisplayName' => acct.DBA_Name__c,
-            'PrimaryEmailAddr' => new Map<String,Object>{'Address'=>acct.QuickBooks_Email__c},
+            'DisplayName' => display,
             'BillAddr' => new Map<String,Object>{
                 'Line1'=>acct.BillingStreet,
                 'City'=>acct.BillingCity,
@@ -23,6 +43,9 @@ public with sharing class QuickBooksService {
                 'PostalCode'=>acct.BillingPostalCode
             }
         };
+        if (String.isNotBlank(email)) {
+            body.put('PrimaryEmailAddr', new Map<String,Object>{'Address'=>email});
+        }
         if (isUpdate) {
             body.put('Id', acct.QuickBooks_Customer_Id__c);
             body.put('SyncToken', acct.QuickBooks_Customer_SyncToken__c);

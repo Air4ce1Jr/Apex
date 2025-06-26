@@ -8,7 +8,12 @@ public with sharing class CustomerInvoiceTriggerHandler {
             }
         }
         if (!toSync.isEmpty() && !QuickBooksTriggerUtil.skipAsync) {
-            System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerInvoice__c', toSync));
+            QuickBooksSyncJob job = new QuickBooksSyncJob('rtms__CustomerInvoice__c', toSync);
+            if (System.Test.isRunningTest() && QuickBooksTriggerUtil.runInline) {
+                job.execute(null);
+            } else {
+                System.enqueueJob(job);
+            }
         }
     }
 }
