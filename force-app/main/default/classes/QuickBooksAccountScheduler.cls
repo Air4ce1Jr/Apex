@@ -5,7 +5,7 @@ public with sharing class QuickBooksAccountScheduler implements Schedulable {
         public Id getChildJobId() { return null; }
     }
     public void execute(SchedulableContext context) {
-        if (System.Test.isRunningTest()) {
+        if (Test.isRunningTest()) {
             new QuickBooksCustomerSyncBatch().execute(new Ctx(), new List<Account>());
         } else {
             Database.executeBatch(new QuickBooksCustomerSyncBatch());

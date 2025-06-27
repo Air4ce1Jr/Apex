@@ -10,24 +10,11 @@ public with sharing class QuickBooksCustomerSyncBatch implements Database.Batcha
         ]);
     }
     public void execute(Database.BatchableContext bc, List<Account> scope) {
-        List<Account> updates = new List<Account>();
+        QuickBooksService.skipDml = skipDml;
         for (Account acct : scope) {
-            QuickBooksService.CustomerResult res = QuickBooksService.createOrUpdateCustomer(acct);
-            Account upd = new Account(Id=acct.Id);
-            Boolean changed = false;
-            if (String.isNotBlank(res.id)) {
-                upd.QuickBooks_Customer_Id__c = res.id;
-                changed = true;
-            }
-            if (String.isNotBlank(res.syncToken)) {
-                upd.QuickBooks_Customer_SyncToken__c = res.syncToken;
-                changed = true;
-            }
-            if (changed) updates.add(upd);
+            QuickBooksService.createOrUpdateCustomer(acct);
         }
-        if (!updates.isEmpty() && !skipDml) {
-            update updates;
-        }
+        QuickBooksService.skipDml = false;
     }
     public void finish(Database.BatchableContext bc) {}
 }

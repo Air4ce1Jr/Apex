@@ -13,17 +13,19 @@ private class QuickBooksCustomerSyncBatchTest {
         public Id getChildJobId() { return null; }
     }
     @IsTest static void testBatch() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
         QuickBooksCustomerSyncBatch.skipDml = true;
         Account a = new Account(Name='Acct', Type='Customer');
         insert a;
         insert new Contact(LastName='Bill', Email='a@example.com', Title='Billing', AccountId=a.Id);
-        System.Test.startTest();
+        Test.startTest();
         new QuickBooksCustomerSyncBatch().execute(new Ctx(), new List<Account>{a});
 
-        System.Test.stopTest();
-        a = [SELECT QuickBooks_Customer_Id__c FROM Account WHERE Id = :a.Id];
+        Test.stopTest();
+        QuickBooksCustomerSyncBatch.skipDml = false;
+        a = [SELECT QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('55', a.QuickBooks_Customer_Id__c);
+        System.assertEquals('3', a.QuickBooks_Customer_SyncToken__c);
     }
 }

@@ -10,7 +10,7 @@ private class CustomerInvoiceTriggerTest {
     }
 
     @IsTest static void testInsertQueuesJob() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
         Account acct = new Account(Name='Acct');
@@ -24,14 +24,14 @@ private class CustomerInvoiceTriggerTest {
             rtms__Invoice_Total__c=10,
             rtms__Accounting_Status__c='Sent to Accounting'
         );
-        System.Test.startTest();
+        Test.startTest();
         insert inv;
-        System.Test.stopTest();
+        Test.stopTest();
         System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
     }
 
     @IsTest static void testUpdateQueuesJob() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
         Account acct = new Account(Name='Acct2');
@@ -47,9 +47,9 @@ private class CustomerInvoiceTriggerTest {
         );
         insert inv;
         inv.rtms__Accounting_Status__c = 'Sent to Accounting';
-        System.Test.startTest();
+        Test.startTest();
         update inv;
-        System.Test.stopTest();
+        Test.stopTest();
         System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
     }
 }

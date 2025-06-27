@@ -1,4 +1,5 @@
 public with sharing class QuickBooksService {
+    @TestVisible static Boolean skipDml = false;
     private static final String COMPANY_ID = '9341454816381446';
     private static String baseUrl(String path) {
         return '/v3/company/' + COMPANY_ID + path;
@@ -9,6 +10,10 @@ public with sharing class QuickBooksService {
         public String syncToken;
     }
 
+    // Synchronizes an Account record with QuickBooks.
+    // The returned CustomerResult values should be persisted back to the
+    // standard Account fields QuickBooks_Customer_Id__c and
+    // QuickBooks_Customer_SyncToken__c by the caller.
     public static CustomerResult createOrUpdateCustomer(Account acct) {
         Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
         String method = isUpdate ? 'PATCH' : 'POST';
@@ -50,6 +55,19 @@ public with sharing class QuickBooksService {
             }
         } catch (Exception e) {
             // Ignore parse errors; result will be empty
+        }
+        if (!skipDml && acct.Id != null && (String.isNotBlank(result.id) || String.isNotBlank(result.syncToken))) {
+            Account upd = new Account(Id=acct.Id);
+            Boolean changed = false;
+            if (String.isNotBlank(result.id)) {
+                upd.QuickBooks_Customer_Id__c = result.id;
+                changed = true;
+            }
+            if (String.isNotBlank(result.syncToken)) {
+                upd.QuickBooks_Customer_SyncToken__c = result.syncToken;
+                changed = true;
+            }
+            if (changed) update upd;
         }
         return result;
     }
