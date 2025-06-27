@@ -48,7 +48,7 @@ The following reference files are located at the root of the repo (`https://gith
 
 ## 3. Validation & Testing
 
-1. **Run Apex tests** (must achieve **≥ 100%** code coverage on any new or modified classes):
+1. **Run Apex tests** (must achieve **≥ 75%%** code coverage on any new or modified classes):
 
    ```bash
    sfdx force:apex:test:run --codecoverage --resultformat human
@@ -85,6 +85,7 @@ The following reference files are located at the root of the repo (`https://gith
   1. Summary of changes
   2. Verified test coverage (%) for new/modified classes
   3. Validation-only deploy summary (test run and coverage)
+  4. Suggestions for fixes 
 
 * **Sandbox Change Set**:
 
@@ -104,7 +105,6 @@ The following reference files are located at the root of the repo (`https://gith
   req.setEndpoint('callout:QuickBooks_NC/v3/company/{COMPANY_ID}/invoice');
   req.setMethod('POST');
   ```
-Below is the **complete Step 4 mapping & payload guide** in a format you can drop into **AGENTS.md**. It includes:
 
 1. A consolidated **field-mapping table** for Customers, Invoices, Invoice Lines, and Payments (all using `rtms__` prefixes).
 2. The **full JSON payloads** for Create/Update operations.
@@ -136,121 +136,14 @@ Below is the **complete Step 4 mapping & payload guide** in a format you can dro
 |                  | `PaymentRefNum`                     | **rtms\_\_CustomerPayment\_\_c**            | `rtms__Check_Reference_Number__c`                | “Check/Reference Number”     |
 |                  | `Line[0].LinkedTxn[0].TxnId`        | **rtms\_\_CustomerPayment\_\_c**            | `rtms__CustomerInvoice__c` (Lookup)              | Link to parent invoice       |
 
----
 
-### JSON Payloads
-
-> **Replace** `{…}` placeholders with your Apex variables (e.g. `acct.DBA_Name__c`, `inv.rtms__Invoice_Total__c`).
-
----
-
-#### 1. Create Customer
-
-```json
-POST callout:QuickBooks_NC/v3/company/9341454816381446 /customer?minorversion=65
-```
-
-```json
-{
-  "DisplayName": "{acct.DBA_Name__c}",
-  "PrimaryEmailAddr": { "Address": "{acct.rtms__QuickBooks_Email__c}" },
-  "BillAddr": {
-    "Line1": "{acct.BillingStreet}",
-    "City": "{acct.BillingCity}",
-    "CountrySubDivisionCode": "{acct.BillingState}",
-    "PostalCode": "{acct.BillingPostalCode}"
-  },
-  "Active": true
-}
-```
-
-#### 2. Update Customer
-
-```json
-PATCH callout:QuickBooks_NC/v3/company/9341454816381446/customer?minorversion=65
-```
-
-```json
-{
-  "Id": "{acct.rtms__QuickBooks_Customer_Id__c}",
-  "SyncToken": "{existingQboCustomer.SyncToken}",
-  "DisplayName": "{acct.DBA_Name__c}",
-  "PrimaryEmailAddr": { "Address": "{acct.rtms__QuickBooks_Email__c}" },
-  "BillAddr": {
-    "Line1": "{acct.BillingStreet}",
-    "City": "{acct.BillingCity}",
-    "CountrySubDivisionCode": "{acct.BillingState}",
-    "PostalCode": "{acct.BillingPostalCode}"
-  }
-}
-```
-
-#### 3. Create Invoice (with optional Lines)
-
-```json
-POST callout:QuickBooks_NC/v3/company/9341454816381446/invoice?minorversion=65
-```
-
-```json
-{
-  "CustomerRef": { "value": "{acct.rtms__QuickBooks_Customer_Id__c}" },
-  "DocNumber": "{inv.rtms__Invoice_Number__c}",
-  "TxnDate": "{inv.rtms__Invoice_Date__c}",
-  "DueDate": "{inv.rtms__Invoice_Due_Date__c}",
-  "PrivateNote": "{inv.rtms__Invoice_Comments__c}",
-  "Line": [
-    {
-      "DetailType": "SalesItemLineDetail",
-      "Description": "{line.Name}",
-      "Amount": {line.rtms__Charge__c},
-      "SalesItemLineDetail": {
-        "ItemRef": { "value": "{line.rtms__QBO_Item_Id__c}" },
-        "UnitPrice": {line.rtms__Unit_Price__c},
-        "Qty": {line.rtms__Quantity__c}
-      }
-    }
-    /* , …other lines… */
-  ]
-}
-```
-
-> *Or* send header first, then **Create Invoice Lines** in a separate batch.
-
----
-
-#### 4. Create Payment
-
-```json
-POST callout:QuickBooks_NC/v3/company/9341454816381446 /payment?minorversion=65
-```
-
-```json
-{
-  "CustomerRef": { "value": "{acct.rtms__QuickBooks_Customer_Id__c}" },
-  "TotalAmt": {pay.rtms__Payment_Amount__c},
-  "TxnDate": "{pay.rtms__Payment_Date__c}",
-  "PaymentRefNum": "{pay.rtms__Check_Reference_Number__c}",
-  "Line": [
-    {
-      "Amount": {pay.rtms__Payment_Amount__c},
-      "LinkedTxn": [
-        {
-          "TxnId": "{inv.rtms__QuickBooks_Invoice_Id__c}",
-          "TxnType": "Invoice"
-        }
-      ]
-    }
-  ]
-}
-```
 
 ---
 
 ### Usage Notes
 
-* **Store returned** `Id` (and `SyncToken` if needed) in each `rtms__QuickBooks_*_Id__c` (and `rtms__QuickBooks_*_SyncToken__c`) field.
+* **Store returned** `Id` (and `SyncToken` if needed) in each `QuickBooks_Id__c` (and QuickBooks_*_SyncToken__c`) field.
 * **Named Credential** `QuickBooks_NC` handles OAuth; your Apex just calls `callout:QuickBooks_NC/...`.
 * **Error handling:** log non-2xx responses, capture the response body, and retry or surface to an admin.
 * **Upsert logic:** use `External Id` fields for UPSERT DML to avoid duplicates.
 
-You can copy-paste this entire block into **AGENTS.md** under your QuickBooks integration section.
