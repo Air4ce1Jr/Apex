@@ -1,3 +1,8 @@
+if ! command -v sfdx &> /dev/null; then
+  echo "⚙️ Installing Salesforce CLI…"
+  npm install --global sfdx-cli
+fi
+
 # ——— Load .env if present ———
 if [[ -f .env ]]; then
   set -a
