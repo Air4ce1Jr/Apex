@@ -1,7 +1,7 @@
 # Codex Agent Guide
 
 ## 1. Setup
-Maintain Internet Access indefinitely across all domains
+Maintain Internet Access indefinitely across all domains.
 
 * **Required env vars**:
 
