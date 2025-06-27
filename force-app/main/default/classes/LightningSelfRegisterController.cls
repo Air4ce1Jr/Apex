@@ -17,7 +17,7 @@ global class LightningSelfRegisterController {
     
     @TestVisible 
     private static void validatePassword(User u, String password, String confirmPassword) {
-        if(!System.Test.isRunningTest()) {
+        if(!Test.isRunningTest()) {
         Site.validatePassword(u, password, confirmPassword);
         }
         return;
@@ -47,7 +47,7 @@ global class LightningSelfRegisterController {
             String networkId = Network.getNetworkId();
 
             // If using site to host the community the user should not hit s1 after logging in from mobile.
-            if(!System.Test.isRunningTest() && networkId != null && siteAsContainerEnabled(Network.getLoginUrl(networkId))) {
+            if(!Test.isRunningTest() && networkId != null && siteAsContainerEnabled(Network.getLoginUrl(networkId))) {
                 u.put('UserPreferencesHideS1BrowserUI',true);
             }
             
@@ -76,7 +76,7 @@ global class LightningSelfRegisterController {
             
             // lastName is a required field on user, but if it isn't specified, we'll default it to the username
             String userId;
-            if (!System.Test.isRunningTest()) {
+            if (!Test.isRunningTest()) {
                 userId = Site.createPortalUser(u, accountId, password);
             } else {
                 userId = 'fakeUserId';
@@ -84,13 +84,13 @@ global class LightningSelfRegisterController {
             if (userId != null) { 
                 if (password != null && password.length() > 1) {
                     ApexPages.PageReference lgn = Site.login(email, password, startUrl);
-                    if(!System.Test.isRunningTest()) {
+                    if(!Test.isRunningTest()) {
                      aura.redirect(lgn);
                     }
                 }
                 else {
                     ApexPages.PageReference confirmRef = new PageReference(regConfirmUrl);
-                    if(!System.Test.isRunningTest()) {
+                    if(!Test.isRunningTest()) {
                     aura.redirect(confirmRef);
                    }
 
@@ -108,7 +108,7 @@ global class LightningSelfRegisterController {
     public static List<Map<String,Object>> getExtraFields(String extraFieldsFieldSet) { 
         List<Map<String,Object>> extraFields = new List<Map<String,Object>>();
         Schema.FieldSet fieldSet = Schema.SObjectType.User.fieldSets.getMap().get(extraFieldsFieldSet);
-        if(!System.Test.isRunningTest()) {
+        if(!Test.isRunningTest()) {
         if (fieldSet != null) {
             for (Schema.FieldSetMember f : fieldSet.getFields()) {
                 Map<String, Object> fieldDetail = new Map<String, Object>();

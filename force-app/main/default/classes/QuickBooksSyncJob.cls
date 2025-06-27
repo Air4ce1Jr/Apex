@@ -9,27 +9,12 @@ public with sharing class QuickBooksSyncJob implements Queueable, Database.Allow
 
     public void execute(QueueableContext context) {
         if (sObjectType == 'Account') {
-            List<Account> updates = new List<Account>();
             for (Account acct : [SELECT Id, Name, QuickBooks_Email__c,
                     BillingStreet, BillingCity, BillingState, BillingPostalCode,
                     QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c,
                     (SELECT Id, Email, Title FROM Contacts WHERE Title = 'Billing')
                 FROM Account WHERE Id IN :recordIds]) {
-                QuickBooksService.CustomerResult res = QuickBooksService.createOrUpdateCustomer(acct);
-                Account upd = new Account(Id=acct.Id);
-                Boolean changed = false;
-                if (String.isNotBlank(res.id)) {
-                    upd.QuickBooks_Customer_Id__c = res.id;
-                    changed = true;
-                }
-                if (String.isNotBlank(res.syncToken)) {
-                    upd.QuickBooks_Customer_SyncToken__c = res.syncToken;
-                    changed = true;
-                }
-                if (changed) updates.add(upd);
-            }
-            if (!updates.isEmpty()) {
-                update updates;
+                QuickBooksService.createOrUpdateCustomer(acct);
             }
         } else if (sObjectType == 'rtms__CustomerInvoice__c') {
             for (rtms__CustomerInvoice__c inv : [SELECT Id, Account__c, Account__r.QuickBooks_Customer_Id__c, Invoice_Number__c,

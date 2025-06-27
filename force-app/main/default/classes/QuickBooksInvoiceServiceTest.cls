@@ -12,7 +12,7 @@ private class QuickBooksInvoiceServiceTest {
     }
 
     @IsTest static void testSendInvoice() {
-        System.Test.setMock(HttpCalloutMock.class, new QBMock());
+        Test.setMock(HttpCalloutMock.class, new QBMock());
         rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(
@@ -23,9 +23,9 @@ private class QuickBooksInvoiceServiceTest {
             rtms__Invoice_Total__c=15
         );
         insert inv;
-        System.Test.startTest();
+        Test.startTest();
         QuickBooksInvoiceService.sendInvoice(inv.Id);
-        System.Test.stopTest();
+        Test.stopTest();
     }
 }
 

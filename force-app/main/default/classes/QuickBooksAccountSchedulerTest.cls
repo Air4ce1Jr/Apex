@@ -11,15 +11,15 @@ private class QuickBooksAccountSchedulerTest {
     }
 
     @IsTest static void testScheduler() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
-        System.Test.startTest();
+        Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.startTest();
         new QuickBooksAccountScheduler().execute(null);
-        System.Test.stopTest();
+        Test.stopTest();
 
         String cron = '0 0 0 * * ?';
-        System.Test.startTest();
+        Test.startTest();
         String jobId = System.schedule('QBAccount', cron, new QuickBooksAccountScheduler());
-        System.Test.stopTest();
+        Test.stopTest();
         System.assertNotEquals(null, jobId);
     }
 }

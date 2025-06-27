@@ -10,31 +10,35 @@ private class QuickBooksServiceTest {
     }
 
     @IsTest static void testCreateCustomer() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksService.skipDml = true;
         Account acct = new Account(Name='a', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606');
         insert acct;
         insert new Contact(LastName='Billing', Email='a@example.com', Title='Billing', AccountId=acct.Id);
-        System.Test.startTest();
+        Test.startTest();
         QuickBooksService.CustomerResult result = QuickBooksService.createOrUpdateCustomer(acct);
-        System.Test.stopTest();
+        Test.stopTest();
         System.assertEquals('99', result.id);
+        QuickBooksService.skipDml = false;
     }
 
     @IsTest static void testCreateCustomerUsesContactEmail() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksService.skipDml = true;
         Account acct = new Account(Name='OnlyName', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606');
         insert acct;
         insert new Contact(LastName='Bill', Email='n@example.com', Title='Billing', AccountId=acct.Id);
-        System.Test.startTest();
+        Test.startTest();
         QuickBooksService.CustomerResult result = QuickBooksService.createOrUpdateCustomer(acct);
-        System.Test.stopTest();
+        Test.stopTest();
         System.assertEquals('99', result.id);
+        QuickBooksService.skipDml = false;
     }
 
     @IsTest static void testCreateInvoiceLineAndPayment() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
         rtms__Load__c load = new rtms__Load__c(Name='L', rtms__Total_Weight__c=1);
         Account acct = new Account(Name='A', QuickBooks_Customer_Id__c='QB1');
@@ -52,16 +56,17 @@ private class QuickBooksServiceTest {
         pay.put('rtms__Customer_Invoice__c', inv.Id);
         pay.put('rtms__Load__c', load.Id);
         pay.put('Account__c', acct.Id);
-        System.Test.startTest();
+        Test.startTest();
         QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
         QuickBooksService.createInvoiceLines(new List<rtms__CustomerInvoiceAccessorial__c>{line}, '1', '0');
         QuickBooksService.createPayment(pay, acct.QuickBooks_Customer_Id__c, '1');
-        System.Test.stopTest();
+        Test.stopTest();
     }
 
     @IsTest static void testUpdateCustomerAndInvoice() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksService.skipDml = true;
         rtms__Load__c load = new rtms__Load__c(Name='L3', rtms__Total_Weight__c=1);
         Account acct = new Account(Name='B', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606',
             QuickBooks_Customer_Id__c='123', QuickBooks_Customer_SyncToken__c='0');
@@ -70,10 +75,11 @@ private class QuickBooksServiceTest {
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv2', Account__c=acct.Id,
             rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1,
             QuickBooks_Invoice_Id__c='456', QuickBooks_Invoice_SyncToken__c='1');
-        System.Test.startTest();
+        Test.startTest();
         QuickBooksService.CustomerResult res = QuickBooksService.createOrUpdateCustomer(acct);
         QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
-        System.Test.stopTest();
+        Test.stopTest();
         System.assertEquals('99', res.id);
+        QuickBooksService.skipDml = false;
     }
 }

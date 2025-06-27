@@ -51,10 +51,10 @@ public with sharing class LightningSelfRegisterControllerTest {
   System.assert(!accounts.isEmpty(), 'There must be at least one account in this environment!');
   String accountId = accounts[0].Id;
  Map < String, String > paramsMap = initializeParams();
-  System.Test.setMock(HttpCalloutMock.class, new Mock());
-  System.Test.startTest();
+  Test.setMock(HttpCalloutMock.class, new Mock());
+  Test.startTest();
   System.assertEquals(null, LightningSelfRegisterController.selfRegister(paramsMap.get('firstName'), paramsMap.get('lastName'), paramsMap.get('email'), paramsMap.get('password'), paramsMap.get('confirmPasswordCorrect'), accountId, paramsMap.get('regConfirmUrl'), null, paramsMap.get('startUrl'), false));
-  System.Test.stopTest();
+  Test.stopTest();
  }
 
  @IsTest

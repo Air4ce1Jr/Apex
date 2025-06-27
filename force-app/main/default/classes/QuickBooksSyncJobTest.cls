@@ -10,8 +10,9 @@ private class QuickBooksSyncJobTest {
     }
 
     @IsTest static void testQueueable() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksService.skipDml = true;
         rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
         Account a = new Account(Name='Acct', QuickBooks_Customer_Id__c='QB1');
@@ -27,27 +28,32 @@ private class QuickBooksSyncJobTest {
         );
         insert inv;
         List<Id> ids = new List<Id>{inv.Id};
-        System.Test.startTest();
+        Test.startTest();
         new QuickBooksSyncJob('rtms__CustomerInvoice__c', ids).execute(null);
-        System.Test.stopTest();
+        Test.stopTest();
+        QuickBooksService.skipDml = false;
     }
 
     @IsTest static void testAccountQueueable() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksService.skipDml = true;
         Account a = new Account(Name='Acct');
         insert a;
         insert new Contact(LastName='Billing', Email='acct@example.com', Title='Billing', AccountId=a.Id);
-        System.Test.startTest();
+        Test.startTest();
         new QuickBooksSyncJob('Account', new List<Id>{a.Id}).execute(null);
-        System.Test.stopTest();
-        a = [SELECT QuickBooks_Customer_Id__c FROM Account WHERE Id = :a.Id];
+        Test.stopTest();
+        QuickBooksService.skipDml = false;
+        a = [SELECT QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('77', a.QuickBooks_Customer_Id__c);
+        System.assertEquals('2', a.QuickBooks_Customer_SyncToken__c);
     }
 
     @IsTest static void testAccessorialQueueable() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksService.skipDml = true;
         rtms__Load__c load = new rtms__Load__c(Name='Load2', rtms__Total_Weight__c=1);
         insert load;
         Account acct = new Account(Name='Acct2', QuickBooks_Customer_Id__c='QB1');
@@ -67,9 +73,10 @@ private class QuickBooksSyncJobTest {
         line.put('rtms__Customer_Invoice__c', inv.Id);
         line.put('rtms__Accessorial__c', accId);
         insert line;
-        System.Test.startTest();
+        Test.startTest();
         new QuickBooksSyncJob('rtms__CustomerInvoiceAccessorial__c', new List<Id>{line.Id}).execute(null);
-        System.Test.stopTest();
+        Test.stopTest();
+        QuickBooksService.skipDml = false;
     }
 
 }

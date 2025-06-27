@@ -9,10 +9,10 @@ private class QuickBooksPaymentSchedulerTest {
     }
 
     @IsTest static void testScheduler() {
-        System.Test.setMock(HttpCalloutMock.class, new Mock());
-        System.Test.startTest();
+        Test.setMock(HttpCalloutMock.class, new Mock());
+        Test.startTest();
         new QuickBooksPaymentScheduler().execute(null);
-        System.Test.stopTest();
+        Test.stopTest();
     }
 }
 
