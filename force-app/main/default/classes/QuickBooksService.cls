@@ -1,5 +1,6 @@
 public with sharing class QuickBooksService {
-    @TestVisible static Boolean skipDml = false;
+    @TestVisible
+    public static Boolean skipDml = false;
     private static final String COMPANY_ID = '9341454816381446';
     private static String baseUrl(String path) {
         return '/v3/company/' + COMPANY_ID + path;
