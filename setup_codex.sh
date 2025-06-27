@@ -17,8 +17,6 @@ MODE="${1:-validate}"        # validate | deploy
 ENV="${2:-sandbox}"          # sandbox | production
 SOURCE_PATH="force-app/main/default"
 MAX_RETRIES=3
-TEST_CLASSES=("QuickBooksInvoiceTest" "CustomerInvoiceTriggerTest" "QuickBooksSyncJobTest")
-TEST_CLASS_LIST=$(IFS=, ; echo "${TEST_CLASSES[*]}")
 
 # ——— FUNCTION: abort stuck Apex test jobs ———
 abort_stuck_tests() {
@@ -43,16 +41,16 @@ abort_stuck_tests() {
 run_tests_with_fallback() {
   if sfdx apex run test --synchronous \
           --code-coverage \
-          --test-level RunSpecifiedTests \
-          --tests "$TEST_CLASS_LIST" \
+          --test-level RunLocalTests \
           --target-org "$ORG" \
           --result-format human; then
-    echo "✅ All tests passed together!"
+    echo "✅ All tests passed in batch!"
     return 0
   else
     echo "⚠️ Bulk test run failed — falling back to individual test execution..."
     FAILED=0
-    for class in "${TEST_CLASSES[@]}"; do
+    TEST_CLASSES=$(sfdx force:apex:test:list --target-org "$ORG" --json | jq -r '.result[].name')
+    for class in $TEST_CLASSES; do
       echo "→ Running test: $class"
       if sfdx apex run test --synchronous \
               --code-coverage \
