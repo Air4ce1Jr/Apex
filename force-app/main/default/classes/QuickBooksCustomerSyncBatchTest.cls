@@ -15,7 +15,7 @@ private class QuickBooksCustomerSyncBatchTest {
     @IsTest static void testBatch() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
-        QuickBooksCustomerSyncBatch.skipDml = true;
+        QuickBooksCustomerSyncBatch.skipDml = false;
         Account a = new Account(Name='Acct', Type='Customer');
         insert a;
         insert new Contact(LastName='Bill', Email='a@example.com', Title='Billing', AccountId=a.Id);
