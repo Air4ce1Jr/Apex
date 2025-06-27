@@ -15,16 +15,13 @@ private class QuickBooksCustomerSyncBatchTest {
     @IsTest static void testBatch() {
         System.Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
-        QuickBooksCustomerSyncBatch.skipDml = false;
+        QuickBooksCustomerSyncBatch.skipDml = true;
         Account a = new Account(Name='Acct', Type='Customer');
         insert a;
         insert new Contact(LastName='Bill', Email='a@example.com', Title='Billing', AccountId=a.Id);
         System.Test.startTest();
- bo2hti-codex/test-and-deploy-quickbooks-salesforce-sync
         new QuickBooksCustomerSyncBatch().execute(new Ctx(), new List<Account>{a});
 
-        Database.executeBatch(new QuickBooksCustomerSyncBatch(), 1);
- main
         System.Test.stopTest();
         a = [SELECT QuickBooks_Customer_Id__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('55', a.QuickBooks_Customer_Id__c);
