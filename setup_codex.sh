@@ -1,3 +1,16 @@
+# ——— Load .env if present ———
+if [[ -f .env ]]; then
+  set -a
+  source .env
+  set +a
+fi
+
+# ——— Pick up SANDBOX_URL (env first; fallback to hard-coded) ———
+SANDBOX_URL="${SANDBOX_URL:-force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3FdO_2hIk0UdadC4q21_e1cjppG8LnpQ5CTFjBcVrvp@continental-tds--quickbooks.sandbox.my.salesforce.com}"
+
+# ——— Pick up PROD_URL (env first; fallback to hard-coded) ———
+PROD_URL="${PROD_URL:-force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5lVdH_iY72liCdetimLZp65Rw2sbBUnRRCs_QfcTgPwSZzVfw7@continental-tds.my.salesforce.com}"
+
 #!/usr/bin/env bash 
 set -euo pipefail
 set -x
