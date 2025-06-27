@@ -38,6 +38,9 @@ abort_stuck_tests() {
 }
 
 # ——— AUTH TO SALESFORCE ORGS (inline) ———
+# Install Salesforce CLI before attempting auth
+npm install --global sfdx-cli
+
 echo "🔐 Authenticating to Sandbox..."
 sfdx force:auth:sfdxurl:store --sfdxurlfile <(echo "$SANDBOX_URL") --setalias "$SANDBOX_ALIAS"
 
