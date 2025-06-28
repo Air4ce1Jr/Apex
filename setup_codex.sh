@@ -143,4 +143,3 @@ done
 
 echo "❌ All $MAX_RETRIES attempts failed in $ENV ($MODE)."
 exit 1
-```
