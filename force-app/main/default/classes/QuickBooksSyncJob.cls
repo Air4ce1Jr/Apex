@@ -9,7 +9,7 @@ public with sharing class QuickBooksSyncJob implements Queueable, Database.Allow
 
     public void execute(QueueableContext context) {
         if (sObjectType == 'Account') {
-            for (Account acct : [SELECT Id, Name, QuickBooks_Email__c,
+            for (Account acct : [SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
                     BillingStreet, BillingCity, BillingState, BillingPostalCode,
                     QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c,
                     (SELECT Id, Email, Title FROM Contacts WHERE Title = 'Billing')

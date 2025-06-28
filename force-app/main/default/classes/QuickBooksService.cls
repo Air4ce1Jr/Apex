@@ -17,6 +17,23 @@ public with sharing class QuickBooksService {
     // QuickBooks_Customer_SyncToken__c by the caller.
     public static CustomerResult createOrUpdateCustomer(Account acct) {
         Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
+        if ((acct.Id == null && isUpdate) || acct.Name == null || acct.DBA_Name__c == null) {
+            acct = [
+                SELECT Id,
+                       Name,
+                       DBA_Name__c,
+                       QuickBooks_Email__c,
+                       BillingStreet,
+                       BillingCity,
+                       BillingState,
+                       BillingPostalCode,
+                       QuickBooks_Customer_Id__c,
+                       QuickBooks_Customer_SyncToken__c
+                  FROM Account
+                 WHERE QuickBooks_Customer_Id__c = :acct.QuickBooks_Customer_Id__c
+                 LIMIT 1
+            ];
+        }
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/customer');
         String email = acct.QuickBooks_Email__c;
