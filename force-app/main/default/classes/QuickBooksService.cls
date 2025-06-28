@@ -19,6 +19,16 @@ public with sharing class QuickBooksService {
         Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/customer');
+        if (acct.Id == null && isUpdate) {
+            acct = [
+                SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
+                       BillingStreet, BillingCity, BillingState, BillingPostalCode,
+                       QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
+                  FROM Account
+                 WHERE QuickBooks_Customer_Id__c = :acct.QuickBooks_Customer_Id__c
+                 LIMIT 1
+            ];
+        }
         String email = acct.QuickBooks_Email__c;
         if (String.isBlank(email) && acct.Id != null) {
             List<Contact> cons = [SELECT Email FROM Contact WHERE AccountId = :acct.Id AND Title = 'Billing' LIMIT 1];
