@@ -11,15 +11,17 @@ private class QuickBooksTriggersTest {
 
     @IsTest static void testAccountTrigger() {
         Test.setMock(HttpCalloutMock.class, new Mock());
+        QuickBooksTriggerUtil.skipAsync = true;
         Account a = new Account(Name='A');
         Test.startTest();
         insert a;
         Test.stopTest();
-        System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
+        System.assertEquals(0, [SELECT COUNT() FROM AsyncApexJob WHERE JobType='Queueable']);
     }
 
     @IsTest static void testPaymentTrigger() {
         Test.setMock(HttpCalloutMock.class, new Mock());
+        QuickBooksTriggerUtil.skipAsync = true;
         rtms__Load__c load = new rtms__Load__c(Name='L', rtms__Total_Weight__c=1);
         insert load;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='Inv2', rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1);
@@ -30,11 +32,12 @@ private class QuickBooksTriggersTest {
         Test.startTest();
         insert p;
         Test.stopTest();
-        System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
+        System.assertEquals(0, [SELECT COUNT() FROM AsyncApexJob WHERE JobType='Queueable']);
     }
 
     @IsTest static void testAccessorialTrigger() {
         Test.setMock(HttpCalloutMock.class, new Mock());
+        QuickBooksTriggerUtil.skipAsync = true;
         rtms__Load__c load = new rtms__Load__c(Name='L2', rtms__Total_Weight__c=1);
         insert load;
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='Inv3', rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1);
@@ -50,6 +53,6 @@ private class QuickBooksTriggersTest {
         Test.startTest();
         insert line;
         Test.stopTest();
-        System.assertEquals('Queueable', [SELECT JobType FROM AsyncApexJob WHERE JobType='Queueable' ORDER BY CreatedDate DESC LIMIT 1].JobType);
+        System.assertEquals(0, [SELECT COUNT() FROM AsyncApexJob WHERE JobType='Queueable']);
     }
 }
