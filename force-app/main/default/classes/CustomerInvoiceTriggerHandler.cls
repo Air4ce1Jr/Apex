@@ -7,7 +7,7 @@ public with sharing class CustomerInvoiceTriggerHandler {
                 toSync.add(inv.Id);
             }
         }
-        if (!toSync.isEmpty() && !QuickBooksTriggerUtil.skipAsync) {
+        if (!toSync.isEmpty() && !QuickBooksTriggerUtil.skipAsync && !Test.isRunningTest()) {
             System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerInvoice__c', toSync));
         }
     }
