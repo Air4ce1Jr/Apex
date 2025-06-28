@@ -2,25 +2,29 @@
 set -euo pipefail
 set -x
 
-# ——— QUICKBOOKS CREDENTIALS ———
+# --- QUICKBOOKS CREDENTIALS ---
 QBO_CLIENT_ID="ABMfKDQ3CPWeXA9byYwd4lV78WefshtTuwFnLrhtSqxQymeOOo"
 QBO_CLIENT_SECRET="urtCni09oxfUiDNAx5j1p5nzI21JzfJRTzAX1yN"
 
-# ——— SALESFORCE AUTH URLs (env-aware with hardcoded fallback) ———
+# --- SALESFORCE AUTH URLs (env-aware with hardcoded fallback) ---
 SANDBOX_URL="${SANDBOX_URL:-force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3FdO_2hIk0UdadC4q21_e1cjppG8LnpQ5CTFjBcVrvp@continental-tds--quickbooks.sandbox.my.salesforce.com}"
 PROD_URL="${PROD_URL:-force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5lVdH_iY72liCdetimLZp65Rw2sbBUnRRCs_QfcTgPwSZzVfw7@continental-tds.my.salesforce.com}"
-SANDBOX_URL="${SANDBOX_URL:-force://PlatformCLI::5Aep861zRbUp4Wf7BvabiXhQlm_zj7s.I.si1paKjl8y3FdO_2hIk0UdadC4q21_e1cjppG8LnpQ5CTFjBcVrvp@continental-tds--quickbooks.sandbox.my.salesforce.com}"
-PROD_URL="${PROD_URL:-force://PlatformCLI::5Aep861GVKZbP2w6VNEk7JfTpn8a.FUT0eGIr5vdkjQymeOOo@continental-tds.my.salesforce.com}"
 
-# ——— CONFIG ———
+# --- CONFIG ---
 SANDBOX_ALIAS="QuickBooksSandbox"
 PROD_ALIAS="ProductionOrg"
-MODE="${1:-validate}"        # validate | deploy
-ENV="${2:-sandbox}"          # sandbox | production
+MODE="${1:-validate}"
+ENV="${2:-sandbox}"
 SOURCE_PATH="force-app/main/default"
 MAX_RETRIES=3
 
-# ——— FUNCTION: abort stuck Apex test jobs ———
+# --- Ensure SFDX is installed ---
+if ! command -v sfdx &> /dev/null; then
+  echo "⚙️ Installing Salesforce CLI…"
+  npm install --global sfdx-cli
+fi
+
+# --- FUNCTION: abort stuck Apex test jobs ---
 abort_stuck_tests() {
   local ORG="$1"
   echo "» Checking for stuck Apex test jobs in $ORG..."
@@ -39,7 +43,7 @@ abort_stuck_tests() {
   done
 }
 
-# ——— FUNCTION: run tests with fallback logic ———
+# --- FUNCTION: run tests with fallback logic ---
 run_tests_with_fallback() {
   if sfdx apex run test --synchronous \
           --code-coverage \
@@ -77,32 +81,30 @@ run_tests_with_fallback() {
   fi
 }
 
-# ——— AUTH TO SALESFORCE ORGS (inline) ———
-npm install --global sfdx-cli
-
+# --- AUTH TO SALESFORCE ORGS ---
 echo "🔐 Authenticating to Sandbox..."
 sfdx force:auth:sfdxurl:store --sfdxurlfile <(echo "$SANDBOX_URL") --setalias "$SANDBOX_ALIAS" || {
   echo "⚠️ Failed to auth using env SANDBOX_URL; retrying with fallback hardcoded value..."
-  sfdx force:auth:sfdxurl:store --sfdxurlfile <(echo "${SANDBOX_URL}") --setalias "$SANDBOX_ALIAS"
+  sfdx force:auth:sfdxurl:store --sfdxurlfile <(echo "$SANDBOX_URL") --setalias "$SANDBOX_ALIAS"
 }
 
 echo "🔐 Authenticating to Production..."
 sfdx force:auth:sfdxurl:store --sfdxurlfile <(echo "$PROD_URL") --setalias "$PROD_ALIAS" || {
   echo "⚠️ Failed to auth using env PROD_URL; retrying with fallback hardcoded value..."
-  sfdx force:auth:sfdxurl:store --sfdxurlfile <(echo "${PROD_URL}") --setalias "$PROD_ALIAS"
+  sfdx force:auth:sfdxurl:store --sfdxurlfile <(echo "$PROD_URL") --setalias "$PROD_ALIAS"
 }
 
 echo "✅ Connected orgs:"
 sfdx force:org:list --all
 
-# ——— SELECT ORG ———
+# --- SELECT ORG ---
 if [[ "$ENV" == "production" ]]; then
   ORG="$PROD_ALIAS"
 else
   ORG="$SANDBOX_ALIAS"
 fi
 
-# ——— RETRY LOOP ———
+# --- RETRY LOOP ---
 for attempt in $(seq 1 "$MAX_RETRIES"); do
   echo "=== Attempt #$attempt of $MAX_RETRIES on $ENV ($MODE) ==="
   abort_stuck_tests "$ORG"
@@ -138,7 +140,6 @@ for attempt in $(seq 1 "$MAX_RETRIES"); do
 
   echo "⚠ $MODE failed. Retrying after aborting stuck jobs..."
   sleep $((attempt * 5))
-
 done
 
 echo "❌ All $MAX_RETRIES attempts failed in $ENV ($MODE)."
