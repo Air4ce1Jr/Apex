@@ -1,4 +1,4 @@
-@IsTest(SeeAllData=true)
+@IsTest(isParallel=false SeeAllData=true)
 private class QuickBooksTriggersTest {
     class Mock implements HttpCalloutMock {
         public HTTPResponse respond(HTTPRequest req) {
