@@ -19,6 +19,7 @@ public with sharing class QuickBooksService {
         Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
         String method = isUpdate ? 'PATCH' : 'POST';
         String resource = baseUrl('/customer');
+2u8ucv-codex/locate-quickbooks-id-write-location
         if ((acct.Id == null && isUpdate) || (acct.Id != null && acct.Name == null)) {
             acct = [
                 SELECT Id,
@@ -31,6 +32,12 @@ public with sharing class QuickBooksService {
                        BillingPostalCode,
                        QuickBooks_Customer_Id__c,
                        QuickBooks_Customer_SyncToken__c
+        if (acct.Id == null && isUpdate) {
+            acct = [
+                SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
+                       BillingStreet, BillingCity, BillingState, BillingPostalCode,
+                       QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
+main
                   FROM Account
                  WHERE QuickBooks_Customer_Id__c = :acct.QuickBooks_Customer_Id__c
                  LIMIT 1
