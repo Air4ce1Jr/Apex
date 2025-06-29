@@ -44,6 +44,7 @@ private class QuickBooksServiceTest {
     @IsTest static void testCreateInvoiceLineAndPayment() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksSyncJob.skipAsync = true;
         rtms__Load__c load = new rtms__Load__c(Name='L', rtms__Total_Weight__c=1);
         Account acct = new Account(Name='A', QuickBooks_Customer_Id__c='QB1');
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv', Account__c=acct.Id,
