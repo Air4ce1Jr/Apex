@@ -23,6 +23,7 @@ private class QuickBooksServiceTest {
         System.assertEquals('99', result.id);
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testCreateCustomerUsesContactEmail() {
@@ -39,11 +40,13 @@ private class QuickBooksServiceTest {
         System.assertEquals('99', result.id);
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testCreateInvoiceLineAndPayment() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksSyncJob.skipAsync = true;
         rtms__Load__c load = new rtms__Load__c(Name='L', rtms__Total_Weight__c=1);
         Account acct = new Account(Name='A', QuickBooks_Customer_Id__c='QB1');
         rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv', Account__c=acct.Id,
@@ -66,6 +69,7 @@ private class QuickBooksServiceTest {
         QuickBooksService.createPayment(pay, acct.QuickBooks_Customer_Id__c, '1');
         Test.stopTest();
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testUpdateCustomerAndInvoice() {
@@ -88,5 +92,6 @@ private class QuickBooksServiceTest {
         System.assertEquals('99', res.id);
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 }
