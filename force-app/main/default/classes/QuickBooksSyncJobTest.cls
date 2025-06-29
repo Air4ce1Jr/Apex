@@ -12,6 +12,7 @@ private class QuickBooksSyncJobTest {
     @IsTest static void testQueueable() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksSyncJob.skipAsync = true;
         QuickBooksService.skipDml = true;
         rtms__Load__c load = new rtms__Load__c(Name='Load', rtms__Total_Weight__c=1);
         insert load;
@@ -32,11 +33,13 @@ private class QuickBooksSyncJobTest {
         new QuickBooksSyncJob('rtms__CustomerInvoice__c', ids).execute(null);
         Test.stopTest();
         QuickBooksService.skipDml = false;
+        QuickBooksSyncJob.skipAsync = false;
     }
 
     @IsTest static void testAccountQueueable() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksSyncJob.skipAsync = true;
         QuickBooksService.skipDml = true;
         Account a = new Account(Name='Acct');
         insert a;
@@ -45,6 +48,7 @@ private class QuickBooksSyncJobTest {
         new QuickBooksSyncJob('Account', new List<Id>{a.Id}).execute(null);
         Test.stopTest();
         QuickBooksService.skipDml = false;
+        QuickBooksSyncJob.skipAsync = false;
         a = [SELECT QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('77', a.QuickBooks_Customer_Id__c);
         System.assertEquals('2', a.QuickBooks_Customer_SyncToken__c);
@@ -53,6 +57,7 @@ private class QuickBooksSyncJobTest {
     @IsTest static void testAccessorialQueueable() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksSyncJob.skipAsync = true;
         QuickBooksService.skipDml = true;
         rtms__Load__c load = new rtms__Load__c(Name='Load2', rtms__Total_Weight__c=1);
         insert load;
@@ -77,6 +82,7 @@ private class QuickBooksSyncJobTest {
         new QuickBooksSyncJob('rtms__CustomerInvoiceAccessorial__c', new List<Id>{line.Id}).execute(null);
         Test.stopTest();
         QuickBooksService.skipDml = false;
+        QuickBooksSyncJob.skipAsync = false;
     }
 
 }

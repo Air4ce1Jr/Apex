@@ -19,7 +19,7 @@ public with sharing class QuickBooksScheduler implements Schedulable {
         if (mode == 'Payment') {
             if (Test.isRunningTest()) {
                 new QuickBooksSyncJob('rtms__CustomerPayment__c', new List<Id>()).execute(null);
-            } else {
+            } else if (!QuickBooksSyncJob.skipAsync) {
                 System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerPayment__c', new List<Id>()));
             }
         } else {

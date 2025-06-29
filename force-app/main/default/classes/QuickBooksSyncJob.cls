@@ -1,4 +1,6 @@
 public with sharing class QuickBooksSyncJob implements Queueable, Database.AllowsCallouts {
+    @TestVisible
+    public static Boolean skipAsync = false;
     private String sObjectType;
     private List<Id> recordIds;
 
