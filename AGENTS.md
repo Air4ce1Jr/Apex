@@ -1,7 +1,7 @@
 # Codex Agent Guide
 
 ## 1. Setup
-Maintain Internet Access indefinitely across all domains.
+Maintain Internet Access indefinitely across all domains. install Salesforce CLI and any required packages.
 
 * **Required env vars**:
 
@@ -19,131 +19,145 @@ echo "$PROD_URL" > prodAuthUrl.txt
 sfdx force:auth:sfdxurl:store --sfdxurlfile prodAuthUrl.txt --setalias ProductionOrg
 rm prodAuthUrl.txt
 
-## 2. Reference Documentation
-
-The following reference files are located at the root of the repo (`https://github.com/Air4ce1Jr/Apex/tree/main`):
-
-* **Revenova TMS Web Services Guide**: `Revenova TMS Web Services Guide.pdf`
-* **Pub/Sub API Accounting Integration**: `PubSub API Accounting Integration.pdf`
-* **Customer & Invoice Management Docs**:
-
-  * `CarrierCustomer Invoice Adjustments.pdf`
-  * `Customer Payments.pdf`
-  * `Master Invoice Number.pdf`
-  * `Customer Invoice Batch Print.pdf`
-  * `Customer Invoice Batch Email.pdf`
-  * `CustomerSpecific Invoice Attachments.pdf`
-  * `Customer Invoice Dispute Resolution.pdf`
-  * `Automated Customer Invoice Generation.pdf`
-  * `Customer Invoice Batch Generation.pdf`
-  * `Customer Invoices.pdf`
-* **Data Dictionaries**:
-
-  * `Data Dictionary A through C.pdf`
-  * `Data Dictionary D through F.pdf`
-  * `Data Dictionary G through R.pdf`
-  * `Data Dictionary S through Z.pdf`
-
-> Codex should use these PDF files to look up API names, endpoints, payload structures, and field definitions when generating or testing Apex code.
-
-## 3. Validation & Testing
-
-1. **Run Apex tests** (must achieve **≥ 75%%** code coverage on any new or modified classes):
-
-   ```bash
-   sfdx force:apex:test:run --codecoverage --resultformat human
-   ```
-
-2. **Validate-only deploy to sandbox** (runs tests & checks without actual deployment):
-
-   ```bash
-   sfdx force:source:deploy --checkonly -p force-app/main/default --testlevel RunLocalTests
-   ```
-
-   * If certain legacy controllers fall below coverage, write additional unit tests to bring overall org coverage above **75%**.
-
-3. **Full sandbox deployment**:
-
-   1. **Deploy** via CLI or Change Set to your sandbox, e.g.:
-
-      ```bash
-      sfdx force:source:deploy -p force-app/main/default --testlevel RunLocalTests
-      ```
-   2. Run all local tests to confirm **org-wide coverage ≥ 75%**.
-   3. Verify there are no coverage errors remaining.
-
-## 4. Pull Requests & Change Sets
-
-* **Pull request title**:
-
-  ```
-  [QuickBooks→Salesforce] <concise summary>
-  ```
-
-* **PR body** should include:
-
-  1. Summary of changes
-  2. Verified test coverage (%) for new/modified classes
-  3. Validation-only deploy summary (test run and coverage)
-  4. Suggestions for fixes 
-
-* **Sandbox Change Set**:
-
-  1. Create an outbound Change Set in sandbox containing your metadata.
-  2. Include all Apex classes, triggers, and test classes.
-  3. Deploy to target org with “Run Local Tests” / “Run All Tests” enabled.
-  4. Verify deployment status and org-wide coverage.
-
-## 5. QuickBooks Connectivity
-
-* **Named Credential**: `QuickBooks_NC`
-* **External Credential**: `QuickBooks_EC`
-* **Apex callout example**:
-
-  ```apex
-  HttpRequest req = new HttpRequest();
-  req.setEndpoint('callout:QuickBooks_NC/v3/company/{COMPANY_ID}/invoice');
-  req.setMethod('POST');
-  ```
-
-1. A consolidated **field-mapping table** for Customers, Invoices, Invoice Lines, and Payments (all using `rtms__` prefixes).
-2. The **full JSON payloads** for Create/Update operations.
+Here's a **step-by-step instruction block** you can paste into your `AGENTS.md` (or a new file like `QUICKBOOKS_CI_FIX.md`) to guide the Codex agent through fixing the test failures and **verifying** that the right changes were applied.
 
 ---
 
-| QBO Entity       | QBO Field                           | Revenova Object (API Name)                  | Revenova Field (API Name)                        | Notes                        |
-| ---------------- | ----------------------------------- | ------------------------------------------- | ------------------------------------------------ | ---------------------------- |
-| **Customer**     | `Customer.Id`                       | **Account**                                 | `rtms__QuickBooks_Customer_Id__c` (Text, Ext ID) | Upsert anchor                |
-|                  | `DisplayName`                       | **Account**                                 | `DBA_Name__c`                                    | Map to your “DBA Name” field |
-|                  | `PrimaryEmailAddr.Address`          | **Account**                                 | `rtms__QuickBooks_Email__c` (Email)              | New                          |
-|                  | `BillAddr.Line1`                    | **Account**                                 | `BillingStreet`                                  | Standard billing street      |
-|                  | `BillAddr.City`                     | **Account**                                 | `BillingCity`                                    | Standard                     |
-|                  | `BillAddr.CountrySubDivisionCode`   | **Account**                                 | `BillingState`                                   | 2-letter state code          |
-|                  | `BillAddr.PostalCode`               | **Account**                                 | `BillingPostalCode`                              | Standard                     |
-| **Invoice**      | `Invoice.Id`                        | **rtms\_\_CustomerInvoice\_\_c**            | `rtms__QuickBooks_Invoice_Id__c` (Text, Ext ID)  | Upsert anchor                |
-|                  | `DocNumber`                         | **rtms\_\_CustomerInvoice\_\_c**            | `rtms__Invoice_Number__c`                        | “Invoice Number”             |
-|                  | `TxnDate`                           | **rtms\_\_CustomerInvoice\_\_c**            | `rtms__Invoice_Date__c`                          | “Invoice Date”               |
-|                  | `DueDate`                           | **rtms\_\_CustomerInvoice\_\_c**            | `rtms__Invoice_Due_Date__c`                      | “Invoice Due Date”           |
-|                  | `TotalAmt`                          | **rtms\_\_CustomerInvoice\_\_c**            | `rtms__Invoice_Total__c`                         | “Invoice Total”              |
-| **Invoice Line** | `Line.Description`                  | **rtms\_\_CustomerInvoiceAccessorial\_\_c** | `Name`                                           | Use as line description      |
-|                  | `Line.Amount`                       | **rtms\_\_CustomerInvoiceAccessorial\_\_c** | `rtms__Charge__c`                                | Currency                     |
-|                  | `SalesItemLineDetail.ItemRef.value` | **rtms\_\_CustomerInvoiceAccessorial\_\_c** | `rtms__QBO_Item_Id__c` (Text)                    | External-ID to QBO Item      |
-|                  | `SalesItemLineDetail.UnitPrice`     | **rtms\_\_CustomerInvoiceAccessorial\_\_c** | `rtms__Unit_Price__c`                            | Currency                     |
-|                  | `SalesItemLineDetail.Qty`           | **rtms\_\_CustomerInvoiceAccessorial\_\_c** | `rtms__Quantity__c`                              | Number                       |
-| **Payment**      | `Payment.Id`                        | **rtms\_\_CustomerPayment\_\_c**            | `rtms__QuickBooks_Payment_Id__c` (Text, Ext ID)  | Upsert anchor                |
-|                  | `TotalAmt`                          | **rtms\_\_CustomerPayment\_\_c**            | `rtms__Payment_Amount__c`                        | “Payment Amount”             |
-|                  | `TxnDate`                           | **rtms\_\_CustomerPayment\_\_c**            | `rtms__Payment_Date__c`                          | “Payment Date”               |
-|                  | `PaymentRefNum`                     | **rtms\_\_CustomerPayment\_\_c**            | `rtms__Check_Reference_Number__c`                | “Check/Reference Number”     |
-|                  | `Line[0].LinkedTxn[0].TxnId`        | **rtms\_\_CustomerPayment\_\_c**            | `rtms__CustomerInvoice__c` (Lookup)              | Link to parent invoice       |
+## 🛠 Codex Action Instructions: Fix & Verify Failing Tests
 
+### 🎯 Goal:
 
+Patch failing Apex tests and logic to meet Salesforce limits and eliminate runtime errors. Then re-run all tests and confirm 100% success.
 
 ---
 
-### Usage Notes
+### ✅ Step 1: Fix `QuickBooksCustomerSyncBatchTest.testBatch`
 
-* **Store returned** `Id` (and `SyncToken` if needed) in each `QuickBooks_Id__c` (and QuickBooks_*_SyncToken__c`) field.
-* **Named Credential** `QuickBooks_NC` handles OAuth; your Apex just calls `callout:QuickBooks_NC/...`.
-* **Error handling:** log non-2xx responses, capture the response body, and retry or surface to an admin.
-* **Upsert logic:** use `External Id` fields for UPSERT DML to avoid duplicates.
+#### Problem:
 
+> `System.SObjectException: SObject row was retrieved via SOQL without querying the requested field: Account.Name`
+
+#### Instructions:
+
+1. Open `QuickBooksService.cls`.
+2. Find the method `createOrUpdateCustomer()`, around **line 30**.
+3. Update the SOQL query to **include the `Name` field**.
+
+#### Example:
+
+```diff
+- Account acc = [SELECT Id FROM Account WHERE Id = :acctId LIMIT 1];
++ Account acc = [SELECT Id, Name FROM Account WHERE Id = :acctId LIMIT 1];
+```
+
+#### ✅ Verify:
+
+* After saving the change, search the file for `SELECT` queries on `Account`.
+* Ensure **every one** that accesses `.Name` also selects `Name` in the SOQL.
+
+---
+
+### ✅ Step 2: Fix `Too many async jobs` LimitExceptions
+
+#### Problem:
+
+> `System.LimitException: Too many async jobs enqueued for this apex test context`
+
+#### Instructions:
+
+1. Open `QuickBooksSyncJobTest.cls` and `QuickBooksServiceTest.cls`.
+2. For each test class, reduce async job calls per method to **5 or fewer**.
+3. Use this conditional guard in classes that enqueue jobs:
+
+```apex
+public static Boolean skipAsync = false;
+...
+if (!skipAsync) {
+    System.enqueueJob(new MyQueueable());
+}
+```
+
+4. In tests that trigger queueables, disable them:
+
+```apex
+@isTest
+static void testAccessorialQueueable() {
+    QuickBooksSyncJob.skipAsync = true;
+    ...
+}
+```
+
+#### ✅ Verify:
+
+* Confirm that **no single test method** queues more than 5 async jobs.
+* Confirm each test class compiles without limit exceptions.
+
+---
+
+### ✅ Step 3: Fix `uncommitted work pending` error
+
+#### Problem:
+
+> `System.CalloutException: You have uncommitted work pending. Please commit or rollback before calling out`
+
+#### Instructions:
+
+1. Open `QuickBooksServiceTest.cls`.
+2. Locate the method `testUpdateCustomerAndInvoice`.
+3. Wrap the callout logic in a separate test context:
+
+```apex
+Test.startTest();
+    // Callout code here
+Test.stopTest();
+```
+
+4. If DML occurs right before a callout, move it **before** or **after**, or mock the callout:
+
+```apex
+Test.setMock(HttpCalloutMock.class, new MyMock());
+```
+
+#### ✅ Verify:
+
+* No DML directly precedes a `Http.send()` call.
+* All callouts are properly wrapped in `startTest/stopTest` or mocked.
+
+---
+
+### ✅ Step 4: Re-run All Tests
+
+```bash
+sfdx apex run test \
+  --target-org QuickBooksSandbox \
+  --code-coverage \
+  --result-format human \
+  --synchronous
+```
+
+---
+
+### ✅ Step 5: Confirm Fixes Worked
+
+1. **Confirm no LimitException** or `CalloutException` errors remain.
+2. Ensure **QuickBooksCustomerSyncBatchTest**, **QuickBooksServiceTest**, and **QuickBooksSyncJobTest** all pass.
+3. Confirm final test results:
+
+   * ✅ 100% passing
+   * 🧪 Minimum 75% org-wide code coverage
+   * No "Too many async jobs" in output
+   * No "uncommitted work" callout errors
+
+---
+
+### 📦 Optional: Commit Patch (if tests pass)
+
+```bash
+git add .
+git commit -m "Fix async limits and missing SOQL fields for QuickBooks test suite"
+git push
+```
+
+---
+
+Let me know if you want this packaged as a `.md` file or directly added to your repo.
