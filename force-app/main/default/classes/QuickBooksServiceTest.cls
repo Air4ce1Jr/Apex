@@ -12,6 +12,7 @@ private class QuickBooksServiceTest {
     @IsTest static void testCreateCustomer() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksSyncJob.skipAsync = true;
         QuickBooksService.skipDml = true;
         Account acct = new Account(Name='a', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606');
         insert acct;
@@ -21,11 +22,13 @@ private class QuickBooksServiceTest {
         Test.stopTest();
         System.assertEquals('99', result.id);
         QuickBooksService.skipDml = false;
+        QuickBooksSyncJob.skipAsync = false;
     }
 
     @IsTest static void testCreateCustomerUsesContactEmail() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksSyncJob.skipAsync = true;
         QuickBooksService.skipDml = true;
         Account acct = new Account(Name='OnlyName', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606');
         insert acct;
@@ -35,6 +38,7 @@ private class QuickBooksServiceTest {
         Test.stopTest();
         System.assertEquals('99', result.id);
         QuickBooksService.skipDml = false;
+        QuickBooksSyncJob.skipAsync = false;
     }
 
     @IsTest static void testCreateInvoiceLineAndPayment() {
@@ -61,11 +65,13 @@ private class QuickBooksServiceTest {
         QuickBooksService.createInvoiceLines(new List<rtms__CustomerInvoiceAccessorial__c>{line}, '1', '0');
         QuickBooksService.createPayment(pay, acct.QuickBooks_Customer_Id__c, '1');
         Test.stopTest();
+        QuickBooksSyncJob.skipAsync = false;
     }
 
     @IsTest static void testUpdateCustomerAndInvoice() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
+        QuickBooksSyncJob.skipAsync = true;
         QuickBooksService.skipDml = true;
         rtms__Load__c load = new rtms__Load__c(Name='L3', rtms__Total_Weight__c=1);
         Account acct = new Account(Name='B', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606',
@@ -81,5 +87,6 @@ private class QuickBooksServiceTest {
         Test.stopTest();
         System.assertEquals('99', res.id);
         QuickBooksService.skipDml = false;
+        QuickBooksSyncJob.skipAsync = false;
     }
 }
