@@ -34,6 +34,7 @@ private class QuickBooksSyncJobTest {
         Test.stopTest();
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testAccountQueueable() {
@@ -49,6 +50,7 @@ private class QuickBooksSyncJobTest {
         Test.stopTest();
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
         a = [SELECT QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('77', a.QuickBooks_Customer_Id__c);
         System.assertEquals('2', a.QuickBooks_Customer_SyncToken__c);
@@ -83,6 +85,7 @@ private class QuickBooksSyncJobTest {
         Test.stopTest();
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
 }

@@ -19,8 +19,7 @@ public with sharing class QuickBooksService {
         Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
         if ((acct.Id == null && isUpdate) || acct.Name == null || acct.DBA_Name__c == null) {
             acct = [
-                SELECT Id,
-                       Name,
+                SELECT Id, Name,
                        DBA_Name__c,
                        QuickBooks_Email__c,
                        BillingStreet,
@@ -38,8 +37,7 @@ public with sharing class QuickBooksService {
         String resource = baseUrl('/customer');
         if ((acct.Id == null && isUpdate) || (acct.Id != null && acct.Name == null)) {
             acct = [
-                SELECT Id,
-                       Name,
+                SELECT Id, Name,
                        DBA_Name__c,
                        QuickBooks_Email__c,
                        BillingStreet,
