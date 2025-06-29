@@ -17,10 +17,10 @@ public with sharing class QuickBooksScheduler implements Schedulable {
 
     public void execute(SchedulableContext context) {
         if (mode == 'Payment') {
-            if (Test.isRunningTest()) {
-                new QuickBooksSyncJob('rtms__CustomerPayment__c', new List<Id>()).execute(null);
-            } else if (!QuickBooksSyncJob.skipAsync) {
+            if (!QuickBooksSyncJob.skipAsync && !Test.isRunningTest()) {
                 System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerPayment__c', new List<Id>()));
+            } else {
+                new QuickBooksSyncJob('rtms__CustomerPayment__c', new List<Id>()).execute(null);
             }
         } else {
             if (Test.isRunningTest()) {
