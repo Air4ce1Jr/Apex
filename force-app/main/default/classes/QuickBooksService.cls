@@ -63,8 +63,6 @@ public with sharing class QuickBooksService {
         }
         String email = acct.QuickBooks_Email__c;
         if (String.isBlank(email) && acct.Id != null) {
-            List<Contact> cons = [SELECT Email FROM Contact WHERE AccountId = :acct.Id AND Title = 'Billing' LIMIT 1];
-            if (!cons.isEmpty()) {
                 email = cons[0].Email;
             }
         }
