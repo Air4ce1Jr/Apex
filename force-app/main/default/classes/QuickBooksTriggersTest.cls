@@ -1,4 +1,4 @@
-@IsTest(isParallel=false SeeAllData=true)
+@IsTest(isParallel=false, SeeAllData=true)
 private class QuickBooksTriggersTest {
     class Mock implements HttpCalloutMock {
         public HTTPResponse respond(HTTPRequest req) {
@@ -19,6 +19,7 @@ private class QuickBooksTriggersTest {
         Test.stopTest();
         System.assertEquals(0, [SELECT COUNT() FROM AsyncApexJob WHERE JobType='Queueable']);
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testPaymentTrigger() {
@@ -37,6 +38,7 @@ private class QuickBooksTriggersTest {
         Test.stopTest();
         System.assertEquals(0, [SELECT COUNT() FROM AsyncApexJob WHERE JobType='Queueable']);
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testAccessorialTrigger() {
@@ -60,5 +62,6 @@ private class QuickBooksTriggersTest {
         Test.stopTest();
         System.assertEquals(0, [SELECT COUNT() FROM AsyncApexJob WHERE JobType='Queueable']);
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 }
