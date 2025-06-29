@@ -24,6 +24,7 @@ private class QuickBooksCustomerSyncBatchTest {
 
         Test.stopTest();
         QuickBooksCustomerSyncBatch.skipDml = false;
+        QuickBooksTriggerUtil.skipAsync = false;
         a = [SELECT QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c FROM Account WHERE Id = :a.Id];
         System.assertEquals('55', a.QuickBooks_Customer_Id__c);
         System.assertEquals('3', a.QuickBooks_Customer_SyncToken__c);
