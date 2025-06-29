@@ -23,6 +23,7 @@ private class QuickBooksServiceTest {
         System.assertEquals('99', result.id);
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testCreateCustomerUsesContactEmail() {
@@ -39,6 +40,7 @@ private class QuickBooksServiceTest {
         System.assertEquals('99', result.id);
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testCreateInvoiceLineAndPayment() {
@@ -67,6 +69,7 @@ private class QuickBooksServiceTest {
         QuickBooksService.createPayment(pay, acct.QuickBooks_Customer_Id__c, '1');
         Test.stopTest();
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 
     @IsTest static void testUpdateCustomerAndInvoice() {
@@ -89,5 +92,6 @@ private class QuickBooksServiceTest {
         System.assertEquals('99', res.id);
         QuickBooksService.skipDml = false;
         QuickBooksSyncJob.skipAsync = false;
+        QuickBooksTriggerUtil.skipAsync = false;
     }
 }
