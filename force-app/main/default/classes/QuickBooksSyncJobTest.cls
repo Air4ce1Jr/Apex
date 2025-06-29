@@ -9,7 +9,7 @@ private class QuickBooksSyncJobTest {
         }
     }
 
-    @IsTest static void testQueueable() {
+   @IsTest static void testQueueable() {
         Test.setMock(HttpCalloutMock.class, new Mock());
         QuickBooksTriggerUtil.skipAsync = true;
         QuickBooksSyncJob.skipAsync = true;
@@ -89,4 +89,3 @@ private class QuickBooksSyncJobTest {
     }
 
 }
-
