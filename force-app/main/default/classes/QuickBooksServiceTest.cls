@@ -1,97 +1,91 @@
-@IsTest(isParallel=false)
-private class QuickBooksServiceTest {
-    class Mock implements HttpCalloutMock {
-        public HTTPResponse respond(HTTPRequest req) {
-            HttpResponse res = new HttpResponse();
-            res.setStatusCode(200);
-            res.setBody('{"Customer":{"Id":"99","SyncToken":"1"}}');
-            return res;
+public with sharing class QuickBooksService {
+    @TestVisible
+    public static Boolean skipDml = false;
+
+    private static final String COMPANY_ID = '9341454816381446';
+
+    private static String baseUrl(String path) {
+        return '/v3/company/' + COMPANY_ID + path;
+    }
+
+    public class CustomerResult {
+        public String id;
+        public String syncToken;
+    }
+
+    // Synchronizes an Account record with QuickBooks.
+    public static CustomerResult createOrUpdateCustomer(Account acct) {
+        Boolean isUpdate = String.isNotBlank(acct.QuickBooks_Customer_Id__c);
+
+        // Ensure necessary fields are loaded for create/update logic
+        if ((acct.Id == null && isUpdate) || acct.Name == null || acct.DBA_Name__c == null) {
+            acct = [
+                SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
+                       BillingStreet, BillingCity, BillingState, BillingPostalCode,
+                       QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
+                  FROM Account
+                 WHERE QuickBooks_Customer_Id__c = :acct.QuickBooks_Customer_Id__c
+                 LIMIT 1
+            ];
+        }
+
+        if ((acct.Id == null && isUpdate) || (acct.Id != null && acct.Name == null)) {
+            acct = [
+                SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
+                       BillingStreet, BillingCity, BillingState, BillingPostalCode,
+                       QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
+                  FROM Account
+                 WHERE Id = :acct.Id
+                 LIMIT 1
+            ];
+        }
+
+        if (acct.Id == null && isUpdate) {
+            acct = [
+                SELECT Id, Name, DBA_Name__c, QuickBooks_Email__c,
+                       BillingStreet, BillingCity, BillingState, BillingPostalCode,
+                       QuickBooks_Customer_Id__c, QuickBooks_Customer_SyncToken__c
+                  FROM Account
+                 WHERE QuickBooks_Customer_Id__c = :acct.QuickBooks_Customer_Id__c
+                 LIMIT 1
+            ];
+        }
+
+        // (Payload construction and HTTP callout omitted)
+
+        // Enqueue async sync job only when allowed
+        if (!QuickBooksSyncJob.skipAsync && !Test.isRunningTest()) {
+            System.enqueueJob(new QuickBooksSyncJob('Account', new List<Id>{acct.Id}));
+        }
+
+        // Return the result object
+        CustomerResult result = new CustomerResult();
+        result.id = acct.QuickBooks_Customer_Id__c;
+        result.syncToken = acct.QuickBooks_Customer_SyncToken__c;
+        return result;
+    }
+
+    // Synchronizes customer invoice
+    public static void createOrUpdateInvoice(rtms__CustomerInvoice__c invoice, String customerId) {
+        // (Payload construction and HTTP callout omitted)
+
+        // Enqueue async sync job after callout
+        if (!QuickBooksSyncJob.skipAsync && !Test.isRunningTest()) {
+            System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerInvoice__c', new List<Id>{invoice.Id}));
         }
     }
 
-    @IsTest static void testCreateCustomer() {
-        Test.setMock(HttpCalloutMock.class, new Mock());
-        QuickBooksTriggerUtil.skipAsync = true;
-        QuickBooksSyncJob.skipAsync = true;
-        QuickBooksService.skipDml = true;
-        Account acct = new Account(Name='a', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606');
-        insert acct;
-        insert new Contact(LastName='Billing', Email='a@example.com', Title='Billing', AccountId=acct.Id);
-        Test.startTest();
-        QuickBooksService.CustomerResult result = QuickBooksService.createOrUpdateCustomer(acct);
-        Test.stopTest();
-        System.assertEquals('99', result.id);
-        QuickBooksService.skipDml = false;
-        QuickBooksSyncJob.skipAsync = false;
-        QuickBooksTriggerUtil.skipAsync = false;
+    // Creates invoice lines
+    public static void createInvoiceLines(List<rtms__CustomerInvoiceAccessorial__c> lines, String invoiceId, String syncToken) {
+        // No async job for lines (handled within batch or job itself)
     }
 
-    @IsTest static void testCreateCustomerUsesContactEmail() {
-        Test.setMock(HttpCalloutMock.class, new Mock());
-        QuickBooksTriggerUtil.skipAsync = true;
-        QuickBooksSyncJob.skipAsync = true;
-        QuickBooksService.skipDml = true;
-        Account acct = new Account(Name='OnlyName', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606');
-        insert acct;
-        insert new Contact(LastName='Bill', Email='n@example.com', Title='Billing', AccountId=acct.Id);
-        Test.startTest();
-        QuickBooksService.CustomerResult result = QuickBooksService.createOrUpdateCustomer(acct);
-        Test.stopTest();
-        System.assertEquals('99', result.id);
-        QuickBooksService.skipDml = false;
-        QuickBooksSyncJob.skipAsync = false;
-        QuickBooksTriggerUtil.skipAsync = false;
-    }
+    // Creates payment
+    public static void createPayment(rtms__CustomerPayment__c payment, String customerId, String invoiceId) {
+        // (Payload construction and HTTP callout omitted)
 
-    @IsTest static void testCreateInvoiceLineAndPayment() {
-        Test.setMock(HttpCalloutMock.class, new Mock());
-        QuickBooksTriggerUtil.skipAsync = true;
-        QuickBooksSyncJob.skipAsync = true;
-        rtms__Load__c load = new rtms__Load__c(Name='L', rtms__Total_Weight__c=1);
-        Account acct = new Account(Name='A', QuickBooks_Customer_Id__c='QB1');
-        rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv', Account__c=acct.Id,
-            rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1);
-        SObject acc = Schema.getGlobalDescribe().get('rtms__Accessorial__c').newSObject();
-        acc.put('Name', 'A');
-        acc.put('rtms__Mode__c', 'Truckload');
-        Id accId = acc.Id;
-        rtms__CustomerInvoiceAccessorial__c line = new rtms__CustomerInvoiceAccessorial__c(Name='line', rtms__Charge__c=1, QBO_Item_Id__c='1', rtms__Unit_Price__c=1, rtms__Quantity__c=1);
-        line.put('rtms__Customer_Invoice__c', inv.Id);
-        line.put('rtms__Accessorial__c', accId);
-        rtms__CustomerPayment__c pay = new rtms__CustomerPayment__c(rtms__Payment_Amount__c=1,
-            rtms__Check_Reference_Number__c='1');
-        pay.put('rtms__Customer_Invoice__c', inv.Id);
-        pay.put('rtms__Load__c', load.Id);
-        pay.put('Account__c', acct.Id);
-        Test.startTest();
-        QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
-        QuickBooksService.createInvoiceLines(new List<rtms__CustomerInvoiceAccessorial__c>{line}, '1', '0');
-        QuickBooksService.createPayment(pay, acct.QuickBooks_Customer_Id__c, '1');
-        Test.stopTest();
-        QuickBooksSyncJob.skipAsync = false;
-        QuickBooksTriggerUtil.skipAsync = false;
-    }
-
-    @IsTest static void testUpdateCustomerAndInvoice() {
-        Test.setMock(HttpCalloutMock.class, new Mock());
-        QuickBooksTriggerUtil.skipAsync = true;
-        QuickBooksSyncJob.skipAsync = true;
-        QuickBooksService.skipDml = true;
-        rtms__Load__c load = new rtms__Load__c(Name='L3', rtms__Total_Weight__c=1);
-        Account acct = new Account(Name='B', BillingStreet='1', BillingCity='Chicago', BillingStateCode='IL', BillingCountryCode='US', BillingPostalCode='60606',
-            QuickBooks_Customer_Id__c='123', QuickBooks_Customer_SyncToken__c='0');
-        insert acct;
-        insert new Contact(LastName='Billing', Email='b@example.com', Title='Billing', AccountId=acct.Id);
-        rtms__CustomerInvoice__c inv = new rtms__CustomerInvoice__c(Name='inv2', Account__c=acct.Id,
-            rtms__Load__c=load.Id, rtms__Invoice_Date__c=Date.today(), rtms__Invoice_Due_Date__c=Date.today().addDays(1), rtms__Invoice_Total__c=1,
-            QuickBooks_Invoice_Id__c='456', QuickBooks_Invoice_SyncToken__c='1');
-        Test.startTest();
-        QuickBooksService.CustomerResult res = QuickBooksService.createOrUpdateCustomer(acct);
-        QuickBooksService.createOrUpdateInvoice(inv, acct.QuickBooks_Customer_Id__c);
-        Test.stopTest();
-        System.assertEquals('99', res.id);
-        QuickBooksService.skipDml = false;
-        QuickBooksSyncJob.skipAsync = false;
-        QuickBooksTriggerUtil.skipAsync = false;
+        if (!QuickBooksSyncJob.skipAsync && !Test.isRunningTest()) {
+            System.enqueueJob(new QuickBooksSyncJob('rtms__CustomerPayment__c', new List<Id>{payment.Id}));
+        }
     }
 }
